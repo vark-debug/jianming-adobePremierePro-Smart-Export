@@ -9,6 +9,7 @@
 - **构建**: Vite 6 (IIFE 格式防止全局变量覆盖) + vite-uxp-plugin
 - **API**: Premiere Pro UXP API (`premierepro`) + UXP Storage API (`uxp.storage.localFileSystem`)
 - **类型**: `@adobe/cc-ext-uxp-types` + [src/types/ppro.d.ts](../src/types/ppro.d.ts) 扩展
+- **全局导入**: 使用 [src/globals.ts](../src/globals.ts) 统一导入 UXP 和宿主 API（`uxp`, `premierepro` 等），避免直接 `require()`
 
 ## 核心业务流程
 
@@ -31,14 +32,21 @@
 
 ### Bolt UXP 框架层
 - **统一 API 层**: [src/api/api.ts](../src/api/api.ts) 根据宿主应用动态导出 API（`if (hostName.startsWith("premierepro")) host = premierepro;`）
-- **配置驱动**: [uxp.config.ts](../uxp.config.ts) 声明 manifest、权限、入口点
+- **配置驱动**: [uxp.config.ts](../uxp.config.ts) 声明 manifest、权限、入口点（面板大小、热重载端口等）
 - **External 声明**: Premiere Pro API (`premierepro`)、UXP API (`uxp`)、Node.js 模块 (`fs`, `path`) **必须**在 [vite.config.ts](../vite.config.ts#L21-L28) 的 `rollupOptions.external` 中声明
 - **IIFE 输出**: Vue 3 需要 `format: "iife"` 防止全局变量覆盖 ([vite.config.ts#L22-L26](../vite.config.ts#L22-L26))
+- **打包命令**: 
+  - `yarn dev` - 开发模式（热重载）
+  - `yarn build` - 生产构建至 `dist/`
+  - `yarn ccx` - 打包为 `.ccx` 插件包（用于分发）
+  - `yarn zip` - 打包为 `.zip` 归档
 
 ### UXP 文件系统陷阱
 - **路径转换**: 使用 `file:///` URL 访问本地路径（如 `file:///C:/Users/...` 或 `file:///Users/...`）
 - **获取文件夹对象**: `await fs.getEntryWithUrl(fileUrl)` → **必须验证** `entry.isFolder` 属性
 - **插件预设文件**: 通过 `fs.getPluginFolder()` 访问 `public/epr/` 目录（Bolt UXP 构建后 epr 在 dist 根目录）
+- **打开系统文件夹**: 使用 `uxp.shell.openPath(nativePath)` 在访达/资源管理器中打开（见 [FileSystemHelper.ts](../src/modules/FileSystemHelper.ts)）
+- **跨平台路径**: Mac 使用 `/`，Windows 使用 `\`，需根据 `nativePath.includes('\\')` 判断
 
 ### Spectrum Web Components 特殊处理
 - **不支持 `v-model`**: 使用 `:value` + `@input` 或 `:selected` + `@change` 绑定
