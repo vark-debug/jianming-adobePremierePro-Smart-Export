@@ -1,6 +1,6 @@
 # 快速导出 (Quick Export) - Premiere Pro 智能导出插件
 
-![Version](https://img.shields.io/badge/version-1.0.0-blue) ![Premiere Pro](https://img.shields.io/badge/Premiere%20Pro-22.3%2B-purple) ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS-lightgrey)
+![Version](https://img.shields.io/badge/version-1.0.0-blue) ![Premiere Pro](https://img.shields.io/badge/Premiere%20Pro-25.6.3%2B-purple) ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS-lightgrey)
 
 专为 Adobe Premiere Pro 设计的自动化导出工具。一键智能分析序列分辨率，自动匹配最佳预设，智能管理文件版本号，让视频交付流程标准化、自动化。
 
@@ -9,7 +9,7 @@
 本插件基于 **Bolt UXP** 框架构建，从旧版 CommonJS 项目完整迁移并现代化重构：
 - **UI框架**: Vue 3 + TypeScript + Spectrum Web Components
 - **构建工具**: Vite 6 + vite-uxp-plugin
-- **平台**: Adobe UXP (Unified Extensibility Platform) for Premiere Pro 22.3+
+- **平台**: Adobe UXP (Unified Extensibility Platform) for Premiere Pro 25.6.3+
 - **字体**: Adobe Clean（Spectrum 设计系统标准字体）
 
 ## ✨ 主要功能
@@ -46,7 +46,7 @@
 
 ## 📋 系统要求
 
-- **Adobe Premiere Pro** 22.3 或更高版本
+- **Adobe Premiere Pro** 25.6.3 或更高版本（已测试）
 - **操作系统**: Windows 10+ 或 macOS 10.15+
 
 ## 🚀 开发指南
