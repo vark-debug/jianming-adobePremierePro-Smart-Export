@@ -51,6 +51,42 @@
 - **Adobe Premiere Pro** 25.6.3 或更高版本（已测试）
 - **操作系统**: Windows 10+ 或 macOS 10.15+
 
+## 🌍 多语言支持
+
+插件会自动检测您的 Premiere Pro 界面语言并自动切换。
+
+**当前支持的语言**：
+- 🇨🇳 **简体中文** (zh-CN)
+- 🇺🇸 **英语** (en)
+
+### 🤝 帮助我们翻译
+
+我们欢迎社区贡献者帮助将插件翻译成更多语言！如果您愿意帮忙翻译：
+
+1. **查看现有翻译**：浏览 [`src/locales/`](src/locales/) 查看已支持的语言
+2. **创建新的翻译文件**：复制 [`src/locales/en.json`](src/locales/en.json) 并重命名为对应的语言代码（如 `fr.json`, `de.json`, `ja.json`）
+3. **翻译内容**：将英文替换为您的语言，保持 JSON 结构不变
+4. **更新 i18n 系统**：在 [`src/locales/index.ts`](src/locales/index.ts) 中添加您的语言（参考现有代码）
+5. **提交 Pull Request**：与社区分享您的翻译！
+
+**翻译文件结构**：
+```json
+{
+  "app": {
+    "title": "您的翻译"
+  },
+  "ui": {
+    "projectName": "...",
+    "export": "..."
+  },
+  "message": {
+    "exportSuccess": "..."
+  }
+}
+```
+
+**需要帮助？**在 GitHub 提交 issue，我们会指导您完成翻译流程！
+
 ## 🚀 开发指南
 
 ### 环境准备

@@ -51,6 +51,42 @@ Built on the **Bolt UXP** framework, fully migrated and modernized from legacy C
 - **Adobe Premiere Pro** 25.6.3 or higher (tested)
 - **Operating System**: Windows 10+ or macOS 10.15+
 
+## 🌍 Multi-Language Support
+
+The plugin automatically detects your Premiere Pro UI language and switches the interface accordingly.
+
+**Currently Supported Languages**:
+- 🇨🇳 **Simplified Chinese** (zh-CN)
+- 🇺🇸 **English** (en)
+
+### 🤝 Help Us Translate
+
+We welcome contributions to make this plugin accessible to more users worldwide! If you'd like to help translate the plugin into your language:
+
+1. **Check existing translations**: Browse [`src/locales/`](src/locales/) to see available languages
+2. **Create a new translation file**: Copy [`src/locales/en.json`](src/locales/en.json) and rename it with the appropriate locale code (e.g., `fr.json`, `de.json`, `ja.json`)
+3. **Translate the content**: Replace English text with your language while keeping the JSON structure intact
+4. **Update the i18n system**: Add your language to [`src/locales/index.ts`](src/locales/index.ts) (follow existing patterns)
+5. **Submit a Pull Request**: Share your translation with the community!
+
+**Translation File Structure**:
+```json
+{
+  "app": {
+    "title": "Your Translation"
+  },
+  "ui": {
+    "projectName": "...",
+    "export": "..."
+  },
+  "message": {
+    "exportSuccess": "..."
+  }
+}
+```
+
+**Need Help?** Open an issue on GitHub, and we'll guide you through the process!
+
 ## 🚀 Development Guide
 
 ### Environment Setup

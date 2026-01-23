@@ -25,5 +25,9 @@
     "folderNotCreated": "Export folder not created yet",
     "refreshFailed": "Refresh failed",
     "error": "Error"
+  },
+  "filename": {
+    "graded": "_Graded",
+    "finalVersion": "_Final"
   }
 }

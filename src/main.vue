@@ -95,7 +95,7 @@ async function refreshProjectInfo() {
       if (versionResult.colorGrading) {
         detectedColorGrading = versionResult.colorGrading;
         isColorGraded.value = versionResult.colorGrading === 'graded';
-        gradingDisplay.value = versionResult.colorGrading === 'graded' ? '_已调色' : '';
+        gradingDisplay.value = versionResult.colorGrading === 'graded' ? t('filename.graded') : '';
       } else {
         // 没有检测到调色状态，默认为未调色
         detectedColorGrading = null;
@@ -189,7 +189,7 @@ function onExportFormatChange(event: any) {
  * 更新显示的调色状态
  */
 function updateGradingDisplay() {
-  gradingDisplay.value = isColorGraded.value ? '_已调色' : '';
+  gradingDisplay.value = isColorGraded.value ? t('filename.graded') : '';
 }
 
 /**
@@ -204,7 +204,7 @@ function onColorGradingChange(event: any) {
  * 更新显示的定稿版状态
  */
 function updateFinalVersionDisplay() {
-  finalVersionDisplay.value = isFinalVersion.value ? '_定稿版' : '';
+  finalVersionDisplay.value = isFinalVersion.value ? t('filename.finalVersion') : '';
 }
 
 /**
@@ -290,8 +290,8 @@ async function startExport() {
     
     // 4. 获取自定义项目名称和各种标记
     const customProjectName = projectName.value.trim();
-    const gradingMarker = isColorGraded.value ? '_已调色' : '';
-    const finalVersionMarker = isFinalVersion.value ? '_定稿版' : '';
+    const gradingMarker = isColorGraded.value ? t('filename.graded') : '';
+    const finalVersionMarker = isFinalVersion.value ? t('filename.finalVersion') : '';
     const combinedMarker = gradingMarker + finalVersionMarker;
     
     // 5. 检测版本并生成文件名（传入组合标记）

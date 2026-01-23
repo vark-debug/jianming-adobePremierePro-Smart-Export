@@ -25,5 +25,9 @@
     "folderNotCreated": "导出文件夹尚未创建",
     "refreshFailed": "刷新失败",
     "error": "错误"
+  },
+  "filename": {
+    "graded": "_已调色",
+    "finalVersion": "_定稿版"
   }
 }
