@@ -1,127 +1,125 @@
-# 快速导出 (Quick Export) - Premiere Pro 智能导出插件
+# Quick Export - Premiere Pro Smart Export Plugin
+
+> English | [简体中文](README.zh-CN.md)
 
 ![Version](https://img.shields.io/badge/version-1.0.0-blue) ![Premiere Pro](https://img.shields.io/badge/Premiere%20Pro-25.6.3%2B-purple) ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS-lightgrey)
 
-专为 Adobe Premiere Pro 设计的自动化导出工具。一键智能分析序列分辨率，自动匹配最佳预设，智能管理文件版本号，让视频交付流程标准化、自动化。
+An automated export tool designed for Adobe Premiere Pro. Intelligently analyzes sequence resolution with one click, automatically matches optimal presets, and manages file version numbers smartly to standardize and automate video delivery workflows.
 
-## 技术架构
+## Technical Architecture
 
-本插件基于 **Bolt UXP** 框架构建，从旧版 CommonJS 项目完整迁移并现代化重构：
-- **UI框架**: Vue 3 + TypeScript + Spectrum Web Components
-- **构建工具**: Vite 6 + vite-uxp-plugin
-- **平台**: Adobe UXP (Unified Extensibility Platform) for Premiere Pro 25.6.3+
-- **字体**: Adobe Clean（Spectrum 设计系统标准字体）
+Built on the **Bolt UXP** framework, fully migrated and modernized from legacy CommonJS project:
+- **UI Framework**: Vue 3 + TypeScript + Spectrum Web Components
+- **Build Tools**: Vite 6 + vite-uxp-plugin
+- **Platform**: Adobe UXP (Unified Extensibility Platform) for Premiere Pro 25.6.3+
+- **Typography**: Adobe Clean (Spectrum Design System standard font)
 
-## ✨ 主要功能
+## ✨ Key Features
 
-### 🎯 智能一键导出
-- **灵活的导出模式**：
-  - **默认模式**：使用 H.264 10Mbps 标准预设，适合日常工作流程和快速交付。
-  - **定稿版模式**：勾选"定稿版"后，根据序列分辨率自动选择最佳参数：
-    - **4K+ (长边 ≥ 3840px)**：自动应用 48Mbps 高码率预设，确保最高画质。
-    - **1080p 及以下**：应用 10Mbps 标准预设。
-- **多格式支持**：
-  - **H.264 (MP4)**：通用交付格式，兼容性最佳。
-  - **ProRes 422 (MOV)**：高画质数字中间片，适合存档或后续制作。
-  - **ProRes 444 (MOV)**：支持 Alpha 透明通道，适合特效合成素材。
+### 🎯 Smart One-Click Export
+- **Flexible Export Modes**:
+  - **Default Mode**: Uses H.264 10Mbps standard preset, suitable for daily workflows and quick delivery.
+  - **Final Version Mode**: When "Final Version" is checked, automatically selects optimal parameters based on sequence resolution:
+    - **4K+ (long edge ≥ 3840px)**: Automatically applies 48Mbps high bitrate preset for maximum quality.
+    - **1080p and below**: Applies 10Mbps standard preset.
+- **Multi-Format Support**:
+  - **H.264 (MP4)**: Universal delivery format with best compatibility.
+  - **ProRes 422 (MOV)**: High-quality digital intermediate, suitable for archival or post-production.
+  - **ProRes 444 (MOV)**: Supports Alpha transparency channel, ideal for VFX compositing.
 
-### 📁 自动文件管理与版本控制
-- **智能目录创建**：自动在项目所在目录的上级创建 "导出" 文件夹，保持项目整洁。
-- **自动版本迭代**：告别 "最终版"、"最最终版" 的混乱命名。插件自动检测并递增版本号：
-  - 支持 `V1`, `V2`, `V3...` 标准格式（无限递增）。
-  - 支持 `第一版`, `第二版`... 中文格式。
-  - **智能命名示例**：
+### 📁 Automatic File Management & Version Control
+- **Smart Directory Creation**: Automatically creates an "Export" folder at the parent level of the project directory, keeping projects organized.
+- **Automatic Version Iteration**: Say goodbye to chaotic naming like "final", "final_final". The plugin automatically detects and increments version numbers:
+  - Supports `V1`, `V2`, `V3...` standard format (infinite increment).
+  - Supports Chinese format `第一版`, `第二版`...
+  - **Smart Naming Examples**:
     ```
-    基础版本: "宣传片_H.264_10Mbps_V1.mp4"
-    调色版本: "宣传片_H.264_10Mbps_已调色_V2.mp4"
-    定稿版本: "宣传片_H.264_48Mbps_已调色_定稿版_V3.mp4"
-    ProRes版本: "宣传片_ProRes422_定稿版_V4.mov"
+    Base version: "Promo_H.264_10Mbps_V1.mp4"
+    Graded version: "Promo_H.264_10Mbps_Graded_V2.mp4"
+    Final version: "Promo_H.264_48Mbps_Graded_Final_V3.mp4"
+    ProRes version: "Promo_ProRes422_Final_V4.mov"
     ```
-- **自定义项目名称**：支持导出前临时修改项目名称，且保持版本号延续。
-- **状态标记管理**：
-  - **调色状态**：手动标记当前导出是否已调色。
-  - **定稿版标记**：标记为正式交付版本，使用高码率预设。
-  - **智能检测**：自动识别已有文件的状态标记并同步 UI。
-  - 支持标记：`已调色`、`调色`、`graded`、`cc` 等。
+- **Custom Project Names**: Supports temporary modification of project names before export while maintaining version continuity.
+- **Status Marking Management**:
+  - **Color Grading Status**: Manually mark whether current export is color graded.
+  - **Final Version Mark**: Mark as official delivery version, uses high bitrate preset.
+  - **Smart Detection**: Automatically recognizes status marks in existing files and syncs UI.
+  - Supported marks: `已调色`, `调色`, `graded`, `cc`, etc.
 
-## 📋 系统要求
+## 📋 System Requirements
 
-- **Adobe Premiere Pro** 25.6.3 或更高版本（已测试）
-- **操作系统**: Windows 10+ 或 macOS 10.15+
+- **Adobe Premiere Pro** 25.6.3 or higher (tested)
+- **Operating System**: Windows 10+ or macOS 10.15+
 
-## 🚀 开发指南
+## 🚀 Development Guide
 
-### 环境准备
-1. 安装 [Node.js 18+](https://nodejs.org/)
-2. 安装 [Adobe UXP Developer Tool (UDT)](https://developer.adobe.com/photoshop/uxp/2022/guides/devtool/installation/)
-3. 安装依赖：`yarn` 或 `npm install`
+### Environment Setup
+1. Install [Node.js 18+](https://nodejs.org/)
+2. Install [Adobe UXP Developer Tool (UDT)](https://developer.adobe.com/photoshop/uxp/2022/guides/devtool/installation/)
+3. Install dependencies: `yarn` or `npm install`
 
-### 开发命令
+### Development Commands
 ```bash
-# 开发模式（启用热重载）
+# Development mode (with hot reload)
 yarn dev
 
-# 生产构建
+# Production build
 yarn build
 
-# 打包为 CCX 插件
+# Package as CCX plugin
 yarn ccx
 
-# 打包为 ZIP 归档
+# Package as ZIP archive
 yarn zip
 ```
 
-### 调试
-1. 运行 `yarn dev` 启动开发服务器
-2. 在 UDT 中加载 `dist/manifest.json`
-3. 连接到 Premiere Pro
-4. 在 UDT 中点击 "Debug" 打开 Chrome DevTools
+### Debugging
+1. Run `yarn dev` to start development server
+2. Load `dist/manifest.json` in UDT
+3. Connect to Premiere Pro
+4. Click "Debug" in UDT to open Chrome DevTools
 
-## 📖 使用说明
+## 📖 Usage Instructions
 
-1. **打开项目**：在 Premiere Pro 中打开你的项目并保存。
-2. **启动插件**：从菜单栏选择 `窗口 > 扩展 > 快速导出`。
-3. **确认信息**：插件会自动检测项目名称、分辨率、版本号等信息。
-4. **选择格式**：根据需要选择导出格式（H.264、ProRes 422、ProRes 444）。
-5. **标记状态**：
-   - 勾选 "已调色" 标记当前序列已完成调色。
-   - 勾选 "定稿版" 启用高码率导出（仅H.264格式）。
-6. **开始导出**：点击 "开始导出" 按钮，等待导出完成。
+1. **Open Project**: Open and save your project in Premiere Pro.
+2. **Launch Plugin**: Select `Window > Extensions > Quick Export` from the menu bar.
+3. **Confirm Information**: Plugin automatically detects project name, resolution, version number, etc.
+4. **Select Format**: Choose export format as needed (H.264, ProRes 422, ProRes 444).
+5. **Mark Status**:
+   - Check "Color Graded" to mark current sequence as color graded.
+   - Check "Final Version" to enable high bitrate export (H.264 format only).
+6. **Start Export**: Click "Start Export" button and wait for completion.
 
-## 🔧 项目结构
+## 🔧 Project Structure
 
 ```
 src/
-├── modules/               # 核心业务模块
-│   ├── projectLocationDetector.ts   # 项目位置检测
-│   ├── exportFolderManager.ts       # 导出文件夹管理
-│   ├── resolutionDetector.ts        # 分辨率检测
-│   ├── fileVersioner.ts             # 版本号智能处理
-│   ├── sequenceExporter.ts          # 序列导出
-│   └── FileSystemHelper.ts          # 文件系统辅助工具
-├── api/                   # Premiere Pro API 封装
-├── main.vue               # 主 Vue 组件
-└── globals.ts             # 全局 UXP/Premiere Pro API 导入
+├── modules/               # Core business modules
+│   ├── projectLocationDetector.ts   # Project location detection
+│   ├── exportFolderManager.ts       # Export folder management
+│   ├── resolutionDetector.ts        # Resolution detection
+│   ├── fileVersioner.ts             # Smart version handling
+│   ├── sequenceExporter.ts          # Sequence export
+│   └── FileSystemHelper.ts          # File system helper
+├── api/                   # Premiere Pro API wrapper
+├── main.vue               # Main Vue component
+└── globals.ts             # Global UXP/Premiere Pro API imports
 
 public/
-└── epr/                   # 导出预设文件
+└── epr/                   # Export preset files
     ├── h264匹配帧10mbps.epr
     ├── h264匹配帧48mbps.epr
     ├── ProRes 422.epr
     └── ProRes 444.epr
 ```
 
-## 📝 更新日志
+## 📄 License
 
-查看 [CHANGELOG.md](CHANGELOG.md) 了解详细更新记录。
+MIT License - See [LICENSE](LICENSE) file for details.
 
-## 📄 许可证
+## 🙏 Acknowledgments
 
-MIT License - 详见 [LICENSE](LICENSE) 文件。
-
-## 🙏 致谢
-
-本项目基于 [Bolt UXP](https://hyperbrew.co/resources/bolt-uxp) 框架构建。
+This project is built on the [Bolt UXP](https://hyperbrew.co/resources/bolt-uxp) framework.
 
 ![npm](https://img.shields.io/npm/v/bolt-uxp)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](https://github.com/hyperbrew/bolt-uxp/blob/master/LICENSE)
