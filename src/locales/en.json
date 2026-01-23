@@ -1,0 +1,29 @@
+{
+  "app": {
+    "title": "Quick Export"
+  },
+  "ui": {
+    "refresh": "Refresh",
+    "export": "Start Export",
+    "exporting": "Exporting...",
+    "openFolder": "Open Export Folder",
+    "projectName": "Project Name",
+    "exportFormat": "Export Format",
+    "colorGraded": "Color Graded",
+    "finalVersion": "Final Version",
+    "exportPath": "Export Path",
+    "formatH264": "H.264 (Default)",
+    "formatProRes422": "Digital Intermediate (ProRes 422)",
+    "formatProRes444": "With Alpha (ProRes 444)",
+    "loading": "Loading project name...",
+    "waiting": "Waiting for detection..."
+  },
+  "message": {
+    "exportSuccess": "✅ Export successful!",
+    "exportFailed": "Export failed",
+    "noProject": "No open project",
+    "folderNotCreated": "Export folder not created yet",
+    "refreshFailed": "Refresh failed",
+    "error": "Error"
+  }
+}

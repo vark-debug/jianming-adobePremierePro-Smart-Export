@@ -7,6 +7,10 @@ import { detectResolution } from "./modules/resolutionDetector";
 import { detectLatestVersionAndGenerateFilename } from "./modules/fileVersioner";
 import { exportCurrentSequence } from "./modules/sequenceExporter";
 import { FileSystemHelper } from "./modules/FileSystemHelper";
+import { detectLanguage } from "./modules/languageDetector";
+import { initI18n, useI18n } from "./locales";
+
+const { t } = useI18n();
 
 // UI 状态
 const projectName = ref('');
@@ -14,7 +18,7 @@ const bitrateDisplay = ref('_10mbps');
 const versionDisplay = ref('_V1');
 const gradingDisplay = ref('');
 const finalVersionDisplay = ref('');
-const exportPath = ref('等待检测...');
+const exportPath = ref('');
 const exportFormat = ref('h264');
 const isColorGraded = ref(false);
 const isFinalVersion = ref(false);
@@ -108,7 +112,7 @@ async function refreshProjectInfo() {
     
   } catch (error: any) {
     console.error('刷新项目信息时出错:', error);
-    alert(`刷新失败: ${error.message}`);
+    alert(`${t('message.refreshFailed')}: ${error.message}`);
   }
 }
 
@@ -117,11 +121,32 @@ async function refreshProjectInfo() {
  */
 async function openExportFolder() {
   if (!exportFolder) {
-    alert('导出文件夹尚未创建');
+    alert(t('message.folderNotCreated'));
     return;
   }
   
   await fileSystemHelper.openFolderInFinder(exportFolder.nativePath);
+}
+
+/**
+ * 测试语言检测功能
+ */
+async function testLanguageDetection() {
+  console.log('=== 开始测试语言检测 ===');
+  const result = await detectLanguage();
+  
+  if (result.success) {
+    console.log('✅ 语言检测成功！');
+    console.log(`  - 主要语言: ${result.language}`);
+    console.log(`  - 完整 Locale: ${result.locale}`);
+    console.log(`  - 是否简体中文: ${result.isChineseSimplified}`);
+    console.log(`  - 是否繁体中文: ${result.isChineseTraditional}`);
+    console.log(`  - 是否英语: ${result.isEnglish}`);
+  } else {
+    console.error('❌ 语言检测失败:', result.error);
+  }
+  
+  console.log('=== 语言检测测试完成 ===');
 }
 
 /**
@@ -221,7 +246,7 @@ async function startExport() {
     // 1. 确保有项目位置
     const projectResult = await getProjectLocation();
     if (!projectResult.success) {
-      alert(`错误: ${projectResult.error}`);
+      alert(`${t('message.error')}: ${projectResult.error}`);
       return;
     }
     
@@ -229,7 +254,7 @@ async function startExport() {
     if (!exportFolder) {
       const folderResult = await getOrCreateExportFolder(projectResult.projectPath);
       if (!folderResult.success) {
-        alert(`错误: ${folderResult.error}`);
+        alert(`${t('message.error')}: ${folderResult.error}`);
         return;
       }
       exportFolder = folderResult.exportFolder;
@@ -278,7 +303,7 @@ async function startExport() {
     );
     
     if (!versionResult.success) {
-      alert(`错误: ${versionResult.error}`);
+      alert(`${t('message.error')}: ${versionResult.error}`);
       return;
     }
     
@@ -295,12 +320,12 @@ async function startExport() {
     );
     
     if (!exportResult.success) {
-      alert(`导出失败: ${exportResult.error}`);
+      alert(`${t('message.exportFailed')}: ${exportResult.error}`);
       return;
     }
     
     // 导出成功
-    alert('✅ 导出成功！');
+    alert(t('message.exportSuccess'));
     console.log('=== 导出流程完成 ===');
     
     // 刷新信息
@@ -308,7 +333,7 @@ async function startExport() {
     
   } catch (error: any) {
     console.error('导出过程发生错误:', error);
-    alert(`导出失败: ${error.message}`);
+    alert(`${t('message.exportFailed')}: ${error.message}`);
   } finally {
     isExporting.value = false;
   }
@@ -317,6 +342,10 @@ async function startExport() {
 // 组件挂载时刷新项目信息
 onMounted(async () => {
   try {
+    // 初始化多语言
+    await initI18n();
+    exportPath.value = t('ui.waiting');
+    
     await refreshProjectInfo();
     // 确保导出格式选择器正确显示
     updateExportFormatPicker();
@@ -330,19 +359,19 @@ onMounted(async () => {
 <template>
   <div class="container">
     <!-- 标题 -->
-    <sp-heading>快速导出</sp-heading>
+    <sp-heading>{{ t('app.title') }}</sp-heading>
     
     <!-- 分隔线 -->
     <sp-divider size="medium"></sp-divider>
     
     <!-- 项目名称输入框 -->
-    <sp-field-label for="project-name-input">项目名称</sp-field-label>
+    <sp-field-label for="project-name-input">{{ t('ui.projectName') }}</sp-field-label>
     <div style="display: flex; gap: 4px; align-items: center; margin-bottom: 8px;">
       <sp-textfield 
         id="project-name-input"
         :value="projectName"
         @input="projectName = $event.target.value"
-        placeholder="正在加载项目名称..." 
+        :placeholder="t('ui.loading')" 
         style="flex: 1; min-width: 0;">
       </sp-textfield>
       <sp-textfield 
@@ -374,10 +403,13 @@ onMounted(async () => {
     <!-- 操作按钮组 -->
     <div style="display: flex; gap: 8px; margin-bottom: 12px;">
       <sp-button variant="cta" @click="refreshProjectInfo" style="flex: 1;">
-        🔄 刷新
+        🔄 {{ t('ui.refresh') }}
       </sp-button>
       <sp-button variant="secondary" @click="openExportFolder" style="flex: 1;">
-        📁 打开导出文件夹
+        📁 {{ t('ui.openFolder') }}
+      </sp-button>
+      <sp-button variant="secondary" @click="testLanguageDetection" style="width: auto;">
+        🌐
       </sp-button>
     </div>
     
@@ -385,7 +417,7 @@ onMounted(async () => {
     <sp-divider size="medium"></sp-divider>
     
     <!-- 导出格式选择 -->
-    <sp-field-label for="export-format-picker">导出格式</sp-field-label>
+    <sp-field-label for="export-format-picker">{{ t('ui.exportFormat') }}</sp-field-label>
     <sp-picker 
       ref="exportFormatPicker"
       :key="pickerKey"
@@ -394,9 +426,9 @@ onMounted(async () => {
       @change="onExportFormatChange"
       style="width: 100%; margin-bottom: 12px;">
       <sp-menu>
-        <sp-menu-item value="h264" selected>H.264（默认）</sp-menu-item>
-        <sp-menu-item value="prores422">数字中间片（ProRes 422）</sp-menu-item>
-        <sp-menu-item value="prores444">带通道（ProRes 444）</sp-menu-item>
+        <sp-menu-item value="h264" selected>{{ t('ui.formatH264') }}</sp-menu-item>
+        <sp-menu-item value="prores422">{{ t('ui.formatProRes422') }}</sp-menu-item>
+        <sp-menu-item value="prores444">{{ t('ui.formatProRes444') }}</sp-menu-item>
       </sp-menu>
     </sp-picker>
     
@@ -409,7 +441,7 @@ onMounted(async () => {
       :checked="isColorGraded"
       @change="onColorGradingChange"
       style="margin-bottom: 12px;">
-      已调色
+      {{ t('ui.colorGraded') }}
     </sp-checkbox>
     
     <!-- 定稿版选择 -->
@@ -418,14 +450,14 @@ onMounted(async () => {
       :checked="isFinalVersion"
       @change="onFinalVersionChange"
       style="margin-bottom: 12px;">
-      定稿版
+      {{ t('ui.finalVersion') }}
     </sp-checkbox>
     
     <!-- 分隔线 -->
     <sp-divider size="medium"></sp-divider>
     
     <!-- 导出路径显示 -->
-    <sp-field-label for="export-path-display">导出路径</sp-field-label>
+    <sp-field-label for="export-path-display">{{ t('ui.exportPath') }}</sp-field-label>
     <sp-textfield 
       id="export-path-display"
       :value="exportPath"
@@ -443,7 +475,7 @@ onMounted(async () => {
       @click="startExport" 
       :disabled="isExporting"
       style="width: 100%;">
-      {{ isExporting ? '导出中...' : '开始导出' }}
+      {{ isExporting ? t('ui.exporting') : t('ui.export') }}
     </sp-button>
   </div>
 </template>
