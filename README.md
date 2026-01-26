@@ -53,11 +53,25 @@ Built on the **Bolt UXP** framework, fully migrated and modernized from legacy C
 
 ## 🌍 Multi-Language Support
 
-The plugin automatically detects your Premiere Pro UI language and switches the interface accordingly.
+The plugin automatically detects your Premiere Pro UI language and switches both the **interface text and exported filename tags** accordingly.
 
 **Currently Supported Languages**:
 - 🇨🇳 **Simplified Chinese** (zh-CN)
 - 🇺🇸 **English** (en)
+
+### Multi-Language Filename Examples
+
+**Chinese Interface Export**:
+```
+宣传片_H.264_10Mbps_已调色_定稿版_V3.mp4
+```
+
+**English Interface Export**:
+```
+Promo_H.264_10Mbps_Graded_Final_V3.mp4
+```
+
+> 💡 **Note**: Filename tags ("已调色", "定稿版", etc.) automatically switch to their corresponding translations ("Graded", "Final", etc.) based on the UI language, ensuring consistent file naming across international teams.
 
 ### 🤝 Help Us Translate
 
