@@ -32,8 +32,49 @@ const exportFormatPicker = ref<any>(null);
 let exportFolder: any = null;
 let detectedBitrate = '10mbps';
 let detectedColorGrading: 'graded' | 'ungraded' | null = null;
+const showSuccessDialog = ref(false);
+const exportedFilePath = ref('');
+const previewVideo = ref<HTMLVideoElement | null>(null);
 
 const fileSystemHelper = new FileSystemHelper();
+
+/**
+ * 视频加载错误处理
+ */
+function onVideoError(e: Event) {
+  console.error('[视频预览] 加载失败:', e);
+  const video = e.target as HTMLVideoElement;
+  if (video && video.error) {
+    console.error('[视频预览] 错误代码:', video.error.code);
+    console.error('[视频预览] 错误信息:', video.error.message);
+  }
+}
+
+/**
+ * 视频加载成功处理
+ */
+function onVideoLoaded() {
+  console.log('[视频预览] 视频元数据加载成功');
+}
+
+/**
+ * 关闭成功弹窗
+ */
+async function closeSuccessDialog() {
+  showSuccessDialog.value = false;
+  exportedFilePath.value = ''; // 清除路径，停止视频加载
+  
+  // 弹窗关闭后再刷新项目信息，计算下一个版本号
+  await refreshProjectInfo();
+}
+
+/**
+ * 打开文件夹并关闭弹窗
+ */
+async function openFolderAndCloseSuccessDialog() {
+  await openExportFolder();
+  closeSuccessDialog();
+}
 
 /**
  * 手动更新导出格式选择器的值
@@ -126,27 +167,6 @@ async function openExportFolder() {
   }
   
   await fileSystemHelper.openFolderInFinder(exportFolder.nativePath);
-}
-
-/**
- * 测试语言检测功能
- */
-async function testLanguageDetection() {
-  console.log('=== 开始测试语言检测 ===');
-  const result = await detectLanguage();
-  
-  if (result.success) {
-    console.log('✅ 语言检测成功！');
-    console.log(`  - 主要语言: ${result.language}`);
-    console.log(`  - 完整 Locale: ${result.locale}`);
-    console.log(`  - 是否简体中文: ${result.isChineseSimplified}`);
-    console.log(`  - 是否繁体中文: ${result.isChineseTraditional}`);
-    console.log(`  - 是否英语: ${result.isEnglish}`);
-  } else {
-    console.error('❌ 语言检测失败:', result.error);
-  }
-  
-  console.log('=== 语言检测测试完成 ===');
 }
 
 /**
@@ -325,11 +345,46 @@ async function startExport() {
     }
     
     // 导出成功
-    alert(t('message.exportSuccess'));
-    console.log('=== 导出流程完成 ===');
+    // alert(t('message.exportSuccess'));
+    // 保存完整文件路径用于预览（需要转换为 file:// URL 形式）
+    if (exportResult.exportPath) {
+      console.log('[预览调试] 用于预览的原始路径:', exportResult.exportPath);
+      
+      let fileUrl = exportResult.exportPath;
+      
+      // 路径转换逻辑
+      // 1. 统一分隔符为 /
+      const normalizedPath = exportResult.exportPath.replace(/\\/g, '/');
+      
+      // 2. 将路径分段进行 URI 编码（处理中文和特殊字符）
+      const pathParts = normalizedPath.split('/');
+      const encodedPathParts = pathParts.map((part: string) => encodeURIComponent(part));
+      const encodedPath = encodedPathParts.join('/');
+      
+      // 3. 添加 file协议
+      // 注意：split之后，如果是绝对路径，第一部分可能是空字符串（Mac/Linux）或盘符（Windows）
+      // Mac: /Users/vark -> ["", "Users", "vark"] -> join -> /Users/vark (需要补 file://)
+      // Windows: C:/Users -> ["C:", "Users"] -> join -> C:/Users (需要补 file:///)
+      
+      if (normalizedPath.startsWith('/')) {
+        // Mac/Linux
+        fileUrl = 'file://' + encodedPath;
+      } else {
+        // Windows
+        fileUrl = 'file:///' + encodedPath;
+      }
+      
+      console.log('[预览调试] 转换后的 file URL:', fileUrl);
+      exportedFilePath.value = fileUrl;
+    } else {
+      console.error('[预览调试] 导出结果中没有 exportPath:', exportResult);
+    }
     
-    // 刷新信息
-    await refreshProjectInfo();
+    showSuccessDialog.value = true;
+    console.log('=== 导出流程完成，等待用户关闭弹窗 ===');
+    
+    // 注意：移除这里的 refreshProjectInfo()，移至 closeSuccessDialog 中执行
+    // 避免弹窗显示时后台刷新导致界面重绘或性能抢占
     
   } catch (error: any) {
     console.error('导出过程发生错误:', error);
@@ -342,15 +397,24 @@ async function startExport() {
 // 组件挂载时刷新项目信息
 onMounted(async () => {
   try {
+    console.log('=== 插件冷启动：开始初始化 ===');
+    
     // 初始化多语言
     await initI18n();
     exportPath.value = t('ui.waiting');
     
+    console.log('=== 插件冷启动：多语言初始化完成，开始刷新项目信息 ===');
+    
     await refreshProjectInfo();
+    
+    console.log('=== 插件冷启动：项目信息刷新完成 ===');
+    
     // 确保导出格式选择器正确显示
     updateExportFormatPicker();
   } catch (error) {
     console.error('挂载时刷新项目信息失败:', error);
+    // 显示错误信息给用户
+    exportPath.value = `初始化失败: ${error.message}`;
   }
 });
 
@@ -400,17 +464,29 @@ onMounted(async () => {
       </sp-textfield>
     </div>
     
-    <!-- 操作按钮组 -->
-    <div style="display: flex; gap: 8px; margin-bottom: 12px;">
-      <sp-button variant="cta" @click="refreshProjectInfo" style="flex: 1;">
+    <!-- 操作按钮与状态选择 -->
+    <div style="display: flex; align-items: center; margin-bottom: 12px;">
+      <sp-button variant="cta" @click="refreshProjectInfo" style="margin-right: 6px;">
         🔄 {{ t('ui.refresh') }}
       </sp-button>
-      <sp-button variant="secondary" @click="openExportFolder" style="flex: 1;">
+      <sp-button variant="secondary" @click="openExportFolder" style="margin-right: 24px;">
         📁 {{ t('ui.openFolder') }}
       </sp-button>
-      <sp-button variant="secondary" @click="testLanguageDetection" style="width: auto;">
-        🌐
-      </sp-button>
+
+      <sp-checkbox 
+        id="color-grading-checkbox"
+        :checked="isColorGraded"
+        @change="onColorGradingChange"
+        style="margin-right: 10px;">
+        {{ t('ui.colorGraded') }}
+      </sp-checkbox>
+      
+      <sp-checkbox 
+        id="final-version-checkbox"
+        :checked="isFinalVersion"
+        @change="onFinalVersionChange">
+        {{ t('ui.finalVersion') }}
+      </sp-checkbox>
     </div>
     
     <!-- 分隔线 -->
@@ -432,26 +508,7 @@ onMounted(async () => {
       </sp-menu>
     </sp-picker>
     
-    <!-- 分隔线 -->
-    <sp-divider size="medium"></sp-divider>
-    
-    <!-- 调色状态选择 -->
-    <sp-checkbox 
-      id="color-grading-checkbox"
-      :checked="isColorGraded"
-      @change="onColorGradingChange"
-      style="margin-bottom: 12px;">
-      {{ t('ui.colorGraded') }}
-    </sp-checkbox>
-    
-    <!-- 定稿版选择 -->
-    <sp-checkbox 
-      id="final-version-checkbox"
-      :checked="isFinalVersion"
-      @change="onFinalVersionChange"
-      style="margin-bottom: 12px;">
-      {{ t('ui.finalVersion') }}
-    </sp-checkbox>
+
     
     <!-- 分隔线 -->
     <sp-divider size="medium"></sp-divider>
@@ -477,6 +534,37 @@ onMounted(async () => {
       style="width: 100%;">
       {{ isExporting ? t('ui.exporting') : t('ui.export') }}
     </sp-button>
+
+    <!-- 导出成功对话框 -->
+    <div v-if="showSuccessDialog" class="dialog-overlay">
+      <div class="dialog-content">
+        <h2 class="dialog-title">✅ {{ t('message.exportSuccess') }}</h2>
+        
+        <!-- 视频预览区域 -->
+        <div class="video-preview-container" v-if="exportedFilePath">
+          <video 
+            ref="previewVideo"
+            :src="exportedFilePath" 
+            controls 
+            autoplay 
+            muted
+            class="video-preview"
+            :title="t('ui.clickToPlay')"
+            @error="onVideoError"
+            @loadedmetadata="onVideoLoaded">
+          </video>
+        </div>
+        
+        <div class="dialog-buttons">
+          <sp-button variant="secondary" @click="closeSuccessDialog">
+            {{ t('ui.close') }}
+          </sp-button>
+          <sp-button variant="cta" @click="openFolderAndCloseSuccessDialog">
+            📁 {{ t('ui.openFolder') }}
+          </sp-button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -523,5 +611,66 @@ onMounted(async () => {
   sp-radio-group {
     display: block;
   }
+}
+
+.video-preview-container {
+  width: 100%;
+  max-width: 320px;
+  margin: 0 auto 16px auto;
+  border-radius: 4px;
+  overflow: hidden;
+  background-color: #000;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+.video-preview {
+  width: 100%;
+  height: auto;
+  display: block;
+  max-height: 180px;
+}
+
+.dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  backdrop-filter: blur(2px);
+}
+
+.dialog-content {
+  background-color: #323232;
+  padding: 24px;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+  border: 1px solid #464646;
+  min-width: 240px;
+  text-align: center;
+  animation: dialog-pop 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.dialog-title {
+  margin: 0 0 24px 0;
+  color: #fff;
+  font-size: 18px;
+  font-weight: 600;
+  display: block;
+}
+
+.dialog-buttons {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+}
+
+@keyframes dialog-pop {
+  0% { transform: scale(0.9); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
 }
 </style>

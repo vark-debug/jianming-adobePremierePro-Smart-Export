@@ -16,7 +16,9 @@
     "formatProRes422": "Digital Intermediate (ProRes 422)",
     "formatProRes444": "With Alpha (ProRes 444)",
     "loading": "Loading project name...",
-    "waiting": "Waiting for detection..."
+    "waiting": "Waiting for detection...",
+    "close": "Close",
+    "clickToPlay": "Click to Play / Hover to Scrub"
   },
   "message": {
     "exportSuccess": "✅ Export successful!",

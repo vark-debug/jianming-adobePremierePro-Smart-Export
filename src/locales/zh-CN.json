@@ -16,7 +16,9 @@
     "formatProRes422": "数字中间片（ProRes 422）",
     "formatProRes444": "带通道（ProRes 444）",
     "loading": "正在加载项目名称...",
-    "waiting": "等待检测..."
+    "waiting": "等待检测...",
+    "close": "关闭",
+    "clickToPlay": "点击播放 / 悬停预览"
   },
   "message": {
     "exportSuccess": "✅ 导出成功！",
