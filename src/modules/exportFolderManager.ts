@@ -18,9 +18,13 @@ export interface ExportFolderResult {
 /**
  * 获取或创建导出文件夹
  * @param projectPath - 项目文件完整路径
+ * @param folderName - 导出文件夹名称（默认"导出"，可在设置中自定义）
  * @returns 导出文件夹信息
  */
-export async function getOrCreateExportFolder(projectPath: string): Promise<ExportFolderResult> {
+export async function getOrCreateExportFolder(
+  projectPath: string,
+  folderName: string = '导出'
+): Promise<ExportFolderResult> {
   const result: ExportFolderResult = {
     success: false,
     exportFolderPath: '',
@@ -113,7 +117,7 @@ export async function getOrCreateExportFolder(projectPath: string): Promise<Expo
       
       for (const entry of entries) {
         console.log(`检查条目: ${entry.name} (isFolder: ${entry.isFolder})`);
-        if (entry.isFolder && entry.name === "导出") {
+        if (entry.isFolder && entry.name === folderName) {
           exportFolder = entry;
           console.log('✓ 找到现有导出文件夹');
           console.log('导出文件夹对象:', exportFolder);
@@ -126,11 +130,11 @@ export async function getOrCreateExportFolder(projectPath: string): Promise<Expo
       console.log('检查现有文件夹时出错，将尝试创建:', error.message);
     }
     
-    // 如果不存在，创建"导出"文件夹
+    // 如果不存在，创建导出文件夹
     if (!exportFolder) {
       try {
-        console.log('导出文件夹不存在，开始创建...');
-        exportFolder = await parentFolder.createFolder("导出");
+        console.log(`导出文件夹不存在，开始创建: ${folderName}`);
+        exportFolder = await parentFolder.createFolder(folderName);
         result.created = true;
         console.log('✓ 成功创建导出文件夹');
         console.log('新建文件夹对象:', exportFolder);

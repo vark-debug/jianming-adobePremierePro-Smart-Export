@@ -18,7 +18,18 @@
     "loading": "Loading project name...",
     "waiting": "Waiting for detection...",
     "close": "Close",
-    "clickToPlay": "Click to Play / Hover to Scrub"
+    "clickToPlay": "Click to Play / Hover to Scrub",
+    "settings": "Settings",
+    "back": "Back"
+  },
+  "settings": {
+    "title": "Settings",
+    "exportFolderName": "Export Folder Name",
+    "exportFolderNameHint": "Exported files will be saved to a folder with this name under the project's parent directory",
+    "save": "Save",
+    "saveSuccess": "Settings saved",
+    "saveFailed": "Save failed",
+    "reset": "Reset to Default"
   },
   "message": {
     "exportSuccess": "✅ Export successful!",

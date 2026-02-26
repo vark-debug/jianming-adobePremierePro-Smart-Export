@@ -9,8 +9,13 @@ import { exportCurrentSequence } from "./modules/sequenceExporter";
 import { FileSystemHelper } from "./modules/FileSystemHelper";
 import { detectLanguage } from "./modules/languageDetector";
 import { initI18n, useI18n } from "./locales";
+import SettingsView from "./components/SettingsView.vue";
+import { exportFolderName, loadSettings } from "./stores/settings";
 
 const { t } = useI18n();
+
+// 视图切换：'main' | 'settings'
+const currentView = ref<'main' | 'settings'>('main');
 
 // UI 状态
 const projectName = ref('');
@@ -85,8 +90,9 @@ function updateExportFormatPicker() {
 
 /**
  * 刷新项目信息
+ * @param options.preserveProjectName - 为 true 时保留用户自定义的项目名称，其余数据全部刷新
  */
-async function refreshProjectInfo() {
+async function refreshProjectInfo(options: { preserveProjectName?: boolean } = {}) {
   try {
     console.log('=== 开始刷新项目信息 ===');
     
@@ -100,7 +106,7 @@ async function refreshProjectInfo() {
     console.log('项目信息:', projectResult);
     
     // 2. 获取/创建导出文件夹
-    const folderResult = await getOrCreateExportFolder(projectResult.projectPath);
+    const folderResult = await getOrCreateExportFolder(projectResult.projectPath, exportFolderName.value);
     if (!folderResult.success) {
       console.error('获取导出文件夹失败:', folderResult.error);
       return;
@@ -129,7 +135,10 @@ async function refreshProjectInfo() {
     console.log('版本检测结果:', versionResult);
     
     if (versionResult.success) {
-      projectName.value = versionResult.baseFilename;
+      // 仅在未保留用户自定义名称时才更新项目名称
+      if (!options.preserveProjectName) {
+        projectName.value = versionResult.baseFilename;
+      }
       versionDisplay.value = `_V${versionResult.newVersion}`;
       
       // 检测调色状态
@@ -272,7 +281,7 @@ async function startExport() {
     
     // 2. 确保有导出文件夹
     if (!exportFolder) {
-      const folderResult = await getOrCreateExportFolder(projectResult.projectPath);
+      const folderResult = await getOrCreateExportFolder(projectResult.projectPath, exportFolderName.value);
       if (!folderResult.success) {
         alert(`${t('message.error')}: ${folderResult.error}`);
         return;
@@ -403,7 +412,12 @@ onMounted(async () => {
     await initI18n();
     exportPath.value = t('ui.waiting');
     
-    console.log('=== 插件冷启动：多语言初始化完成，开始刷新项目信息 ===');
+    console.log('=== 插件冷启动：多语言初始化完成，加载持久化设置 ===');
+    
+    // 加载持久化设置（导出文件夹名称等）
+    await loadSettings();
+    
+    console.log('=== 插件冷启动：设置加载完成，开始刷新项目信息 ===');
     
     await refreshProjectInfo();
     
@@ -421,12 +435,28 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="container">
-    <!-- 标题 -->
-    <sp-heading>{{ t('app.title') }}</sp-heading>
-    
-    <!-- 分隔线 -->
-    <sp-divider size="medium"></sp-divider>
+  <div class="app-root">
+    <!-- 设置视图 -->
+    <SettingsView
+      v-if="currentView === 'settings'"
+      @back="currentView = 'main'; refreshProjectInfo({ preserveProjectName: true })"
+    />
+
+    <!-- 主视图 -->
+    <div v-else class="container">
+      <!-- 标题栏 -->
+      <div class="app-header">
+        <sp-heading>{{ t('app.title') }}</sp-heading>
+        <sp-action-button
+          quiet
+          class="settings-btn"
+          :title="t('ui.settings')"
+          @click="currentView = 'settings'"
+        >⚙</sp-action-button>
+      </div>
+      
+      <!-- 分隔线 -->
+      <sp-divider size="medium"></sp-divider>
     
     <!-- 项目名称输入框 -->
     <sp-field-label for="project-name-input">{{ t('ui.projectName') }}</sp-field-label>
@@ -565,6 +595,7 @@ onMounted(async () => {
         </div>
       </div>
     </div>
+    </div>
   </div>
 </template>
 
@@ -672,5 +703,34 @@ onMounted(async () => {
 @keyframes dialog-pop {
   0% { transform: scale(0.9); opacity: 0; }
   100% { transform: scale(1); opacity: 1; }
+}
+
+.app-root {
+  width: 100%;
+  height: 100%;
+}
+
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+
+  sp-heading {
+    margin-bottom: 0;
+    flex: 1;
+  }
+
+  .settings-btn {
+    flex-shrink: 0;
+    font-size: 16px;
+    cursor: pointer;
+    opacity: 0.7;
+    transition: opacity 0.15s ease;
+
+    &:hover {
+      opacity: 1;
+    }
+  }
 }
 </style>

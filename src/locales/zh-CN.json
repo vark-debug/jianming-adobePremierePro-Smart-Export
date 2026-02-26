@@ -18,7 +18,18 @@
     "loading": "正在加载项目名称...",
     "waiting": "等待检测...",
     "close": "关闭",
-    "clickToPlay": "点击播放 / 悬停预览"
+    "clickToPlay": "点击播放 / 悬停预览",
+    "settings": "设置",
+    "back": "返回"
+  },
+  "settings": {
+    "title": "设置",
+    "exportFolderName": "导出文件夹名称",
+    "exportFolderNameHint": "导出文件将保存到项目父目录下该名称的文件夹中",
+    "save": "保存",
+    "saveSuccess": "设置已保存",
+    "saveFailed": "保存失败",
+    "reset": "恢复默认"
   },
   "message": {
     "exportSuccess": "✅ 导出成功！",
