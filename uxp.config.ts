@@ -29,10 +29,10 @@ const manifest: UXP_Manifest = {
       label: {
         default: name,
       },
-      minimumSize: { width: 430, height: 500 },
+      minimumSize: { width: 480, height: 500 },
       maximumSize: { width: 2000, height: 2000 },
-      preferredDockedSize: { width: 430, height: 600 },
-      preferredFloatingSize: { width: 450, height: 650 },
+      preferredDockedSize: { width: 480, height: 600 },
+      preferredFloatingSize: { width: 500, height: 650 },
       icons: [
         {
           width: 23,

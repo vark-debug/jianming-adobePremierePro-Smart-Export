@@ -10,7 +10,8 @@ import { FileSystemHelper } from "./modules/FileSystemHelper";
 import { detectLanguage } from "./modules/languageDetector";
 import { initI18n, useI18n } from "./locales";
 import SettingsView from "./components/SettingsView.vue";
-import { exportFolderName, loadSettings } from "./stores/settings";
+import { exportFolderName, versionMode, versionPrefix, loadSettings } from "./stores/settings";
+import { generateVersionStringWithSettings } from "./modules/fileVersioner";
 
 const { t } = useI18n();
 
@@ -129,7 +130,10 @@ async function refreshProjectInfo(options: { preserveProjectName?: boolean } = {
     const versionResult = await detectLatestVersionAndGenerateFilename(
       exportFolder,
       detectedBitrate,
-      null
+      null,
+      "",
+      versionMode.value,
+      versionPrefix.value
     );
     
     console.log('版本检测结果:', versionResult);
@@ -139,7 +143,8 @@ async function refreshProjectInfo(options: { preserveProjectName?: boolean } = {
       if (!options.preserveProjectName) {
         projectName.value = versionResult.baseFilename;
       }
-      versionDisplay.value = `_V${versionResult.newVersion}`;
+      const verStr = generateVersionStringWithSettings(versionResult.newVersion, versionMode.value, versionPrefix.value);
+      versionDisplay.value = `_${verStr}`;
       
       // 检测调色状态
       if (versionResult.colorGrading) {
@@ -328,7 +333,9 @@ async function startExport() {
       exportFolder,
       finalBitrate,
       customProjectName || null,
-      combinedMarker
+      combinedMarker,
+      versionMode.value,
+      versionPrefix.value
     );
     
     if (!versionResult.success) {
@@ -460,38 +467,17 @@ onMounted(async () => {
     
     <!-- 项目名称输入框 -->
     <sp-field-label for="project-name-input">{{ t('ui.projectName') }}</sp-field-label>
-    <div style="display: flex; gap: 4px; align-items: center; margin-bottom: 8px;">
+    <div class="filename-row">
       <sp-textfield 
         id="project-name-input"
         :value="projectName"
         @input="projectName = $event.target.value"
-        :placeholder="t('ui.loading')" 
-        style="flex: 1; min-width: 0;">
+        :placeholder="t('ui.loading')">
       </sp-textfield>
-      <sp-textfield 
-        :value="bitrateDisplay"
-        readonly
-        quiet
-        style="width: 120px; text-align: center; padding: 0 6px; margin-right: 2px;">
-      </sp-textfield>
-      <sp-textfield 
-        :value="gradingDisplay"
-        readonly
-        quiet
-        style="width: 70px; text-align: center; padding: 0 6px; margin-right: 2px; min-width: 70px;">
-      </sp-textfield>
-      <sp-textfield 
-        :value="finalVersionDisplay"
-        readonly
-        quiet
-        style="width: 70px; text-align: center; padding: 0 6px; margin-right: 2px; min-width: 70px;">
-      </sp-textfield>
-      <sp-textfield 
-        :value="versionDisplay"
-        readonly
-        quiet
-        style="width: 45px; text-align: center; padding: 0 6px;">
-      </sp-textfield>
+      <span class="filename-tag">{{ bitrateDisplay }}</span>
+      <span class="filename-tag" v-if="gradingDisplay">{{ gradingDisplay }}</span>
+      <span class="filename-tag" v-if="finalVersionDisplay">{{ finalVersionDisplay }}</span>
+      <span class="filename-tag">{{ versionDisplay }}</span>
     </div>
     
     <!-- 操作按钮与状态选择 -->
@@ -710,6 +696,30 @@ onMounted(async () => {
   height: 100%;
 }
 
+.filename-row {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  margin-bottom: 8px;
+  overflow: hidden;
+
+  sp-textfield {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .filename-tag {
+    flex-shrink: 0;
+    white-space: nowrap;
+    font-size: 13px;
+    color: #bbb;
+    line-height: 1;
+    padding: 0 2px;
+    // 视觉上与输入框基线对齐
+    align-self: center;
+  }
+}
+
 .app-header {
   display: flex;
   align-items: center;
@@ -723,9 +733,9 @@ onMounted(async () => {
 
   .settings-btn {
     flex-shrink: 0;
-    font-size: 16px;
+    font-size: 22px;
     cursor: pointer;
-    opacity: 0.7;
+    opacity: 1.7;
     transition: opacity 0.15s ease;
 
     &:hover {

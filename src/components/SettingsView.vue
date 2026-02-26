@@ -1,52 +1,60 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { useI18n } from '../locales';
-import { exportFolderName, saveSettings } from '../stores/settings';
+import { exportFolderName, versionMode, versionPrefix, saveSettings } from '../stores/settings';
 
 const { t } = useI18n();
 
 const emit = defineEmits<{ (e: 'back'): void }>();
 
-// 本地草稿（防止用户编辑到一半时外部值已改变）
+// 本地草稿
 const draftFolderName = ref(exportFolderName.value);
+const draftVersionMode = ref<'numeric' | 'chinese'>(versionMode.value);
+const draftVersionPrefix = ref(versionPrefix.value);
 const saveStatus = ref<'idle' | 'success' | 'error'>('idle');
 const saveErrorMsg = ref('');
 let statusTimer: ReturnType<typeof setTimeout> | null = null;
 
 const DEFAULT_FOLDER_NAME = '导出';
+const DEFAULT_PREFIX = 'V';
 
 onMounted(() => {
   draftFolderName.value = exportFolderName.value;
+  draftVersionMode.value = versionMode.value;
+  draftVersionPrefix.value = versionPrefix.value;
 });
 
+function onVersionModeChange(event: any) {
+  draftVersionMode.value = event.target.value as 'numeric' | 'chinese';
+}
+
 async function handleSave() {
-  const trimmed = draftFolderName.value.trim();
-  if (!trimmed) {
-    draftFolderName.value = DEFAULT_FOLDER_NAME;
-  } else {
-    draftFolderName.value = trimmed;
-  }
+  const trimmedFolder = draftFolderName.value.trim();
+  draftFolderName.value = trimmedFolder || DEFAULT_FOLDER_NAME;
+
+  const trimmedPrefix = draftVersionPrefix.value.trim();
+  draftVersionPrefix.value = trimmedPrefix || DEFAULT_PREFIX;
 
   exportFolderName.value = draftFolderName.value;
+  versionMode.value = draftVersionMode.value;
+  versionPrefix.value = draftVersionPrefix.value;
+
   const result = await saveSettings();
 
   if (statusTimer) clearTimeout(statusTimer);
-
   if (result.success) {
     saveStatus.value = 'success';
   } else {
     saveStatus.value = 'error';
     saveErrorMsg.value = result.error || '';
   }
-
-  // 2 秒后自动重置状态
-  statusTimer = setTimeout(() => {
-    saveStatus.value = 'idle';
-  }, 2000);
+  statusTimer = setTimeout(() => { saveStatus.value = 'idle'; }, 2000);
 }
 
 function handleReset() {
   draftFolderName.value = DEFAULT_FOLDER_NAME;
+  draftVersionMode.value = 'numeric';
+  draftVersionPrefix.value = DEFAULT_PREFIX;
 }
 
 function handleBack() {
@@ -78,6 +86,44 @@ function handleBack() {
         style="width: 100%; margin-bottom: 6px;"
       ></sp-textfield>
       <p class="settings-hint">{{ t('settings.exportFolderNameHint') }}</p>
+    </div>
+
+    <sp-divider size="medium"></sp-divider>
+
+    <!-- 版本号格式设置 -->
+    <div class="settings-section">
+      <sp-field-label for="version-mode-picker">
+        {{ t('settings.versionMode') }}
+      </sp-field-label>
+      <sp-picker
+        id="version-mode-picker"
+        :value="draftVersionMode"
+        @change="onVersionModeChange"
+        style="width: 100%; margin-bottom: 10px;"
+      >
+        <sp-menu>
+          <sp-menu-item value="numeric" :selected="draftVersionMode === 'numeric'">
+            {{ t('settings.versionModeNumeric') }}
+          </sp-menu-item>
+          <sp-menu-item value="chinese" :selected="draftVersionMode === 'chinese'">
+            {{ t('settings.versionModeChinese') }}
+          </sp-menu-item>
+        </sp-menu>
+      </sp-picker>
+
+      <!-- 仅数字模式下显示前缀输入 -->
+      <template v-if="draftVersionMode === 'numeric'">
+        <sp-field-label for="version-prefix-input">
+          {{ t('settings.versionPrefix') }}
+        </sp-field-label>
+        <sp-textfield
+          id="version-prefix-input"
+          :value="draftVersionPrefix"
+          @input="draftVersionPrefix = $event.target.value"
+          style="width: 100%; margin-bottom: 6px;"
+        ></sp-textfield>
+        <p class="settings-hint">{{ t('settings.versionPrefixHint') }}</p>
+      </template>
     </div>
 
     <sp-divider size="medium"></sp-divider>

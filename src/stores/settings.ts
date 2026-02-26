@@ -11,13 +11,19 @@ const SETTINGS_FILENAME = 'app-settings.json';
 
 export interface AppSettings {
   exportFolderName: string;
+  versionMode: 'numeric' | 'chinese';
+  versionPrefix: string;
 }
 
 // 默认导出文件夹名称（中文用户习惯）
 const DEFAULT_EXPORT_FOLDER_NAME = '导出';
+const DEFAULT_VERSION_MODE: 'numeric' | 'chinese' = 'numeric';
+const DEFAULT_VERSION_PREFIX = 'V';
 
 // 响应式设置状态（整个应用共享同一个 ref 实例）
 export const exportFolderName = ref<string>(DEFAULT_EXPORT_FOLDER_NAME);
+export const versionMode = ref<'numeric' | 'chinese'>(DEFAULT_VERSION_MODE);
+export const versionPrefix = ref<string>(DEFAULT_VERSION_PREFIX);
 
 /** 从 UXP DataFolder 加载设置 */
 export async function loadSettings(): Promise<void> {
@@ -37,6 +43,12 @@ export async function loadSettings(): Promise<void> {
       if (settings.exportFolderName && typeof settings.exportFolderName === 'string') {
         exportFolderName.value = settings.exportFolderName;
       }
+      if (settings.versionMode === 'numeric' || settings.versionMode === 'chinese') {
+        versionMode.value = settings.versionMode;
+      }
+      if (settings.versionPrefix && typeof settings.versionPrefix === 'string') {
+        versionPrefix.value = settings.versionPrefix;
+      }
       console.log('[Settings] 加载成功:', settings);
     } else {
       console.log('[Settings] 未找到设置文件，使用默认值');
@@ -52,6 +64,8 @@ export async function saveSettings(): Promise<{ success: boolean; error?: string
     const dataFolder = await fs.getDataFolder();
     const settings: AppSettings = {
       exportFolderName: exportFolderName.value,
+      versionMode: versionMode.value,
+      versionPrefix: versionPrefix.value,
     };
     const content = JSON.stringify(settings, null, 2);
 

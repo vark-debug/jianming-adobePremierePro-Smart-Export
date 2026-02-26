@@ -171,10 +171,12 @@ export function extractVersionFromFilename(filename: string): VersionInfo {
     return result;
   }
   
-  // 匹配中文版本格式 (第一版, 第二版, 第三版, ...)
+  // 匹配中文版本格式 (第一版, 第二版, ..., 第二十版)
   const chineseNumbers: Record<string, number> = {
     '一': 1, '二': 2, '三': 3, '四': 4, '五': 5,
-    '六': 6, '七': 7, '八': 8, '九': 9, '十': 10
+    '六': 6, '七': 7, '八': 8, '九': 9, '十': 10,
+    '十一': 11, '十二': 12, '十三': 13, '十四': 14, '十五': 15,
+    '十六': 16, '十七': 17, '十八': 18, '十九': 19, '二十': 20
   };
   
   const chinesePatternMatch = nameWithoutExt.match(/第([一二三四五六七八九十]+)版/);
@@ -198,14 +200,43 @@ export function generateVersionString(version: number, versionType: 'V' | '版' 
   if (versionType === 'V') {
     return `V${version}`;
   } else if (versionType === '版') {
-    const chineseNumbers = ['', '一', '二', '三', '四', '五', '六', '七', '八', '九', '十'];
-    if (version <= 10) {
+    const chineseNumbers = [
+      '', '一', '二', '三', '四', '五', '六', '七', '八', '九', '十',
+      '十一', '十二', '十三', '十四', '十五', '十六', '十七', '十八', '十九', '二十'
+    ];
+    if (version <= 20) {
       return `第${chineseNumbers[version]}版`;
     } else {
       return `第${version}版`;
     }
   }
   return `V${version}`;
+}
+
+/**
+ * 根据用户设置生成版本号字符串
+ * @param version - 版本数字
+ * @param mode - 'numeric' 数字格式 | 'chinese' 中文格式
+ * @param prefix - 数字格式时的前缀（例如 "V"，生成 V1, V2...）
+ */
+export function generateVersionStringWithSettings(
+  version: number,
+  mode: 'numeric' | 'chinese',
+  prefix: string
+): string {
+  if (mode === 'chinese') {
+    const chineseNumbers = [
+      '', '一', '二', '三', '四', '五', '六', '七', '八', '九', '十',
+      '十一', '十二', '十三', '十四', '十五', '十六', '十七', '十八', '十九', '二十'
+    ];
+    if (version <= 20) {
+      return `第${chineseNumbers[version]}版`;
+    } else {
+      return `第${version}版`;
+    }
+  }
+  // numeric
+  return `${prefix}${version}`;
 }
 
 /**
@@ -260,7 +291,9 @@ export async function detectLatestVersionAndGenerateFilename(
   exportFolder: any,
   bitrate: string = "10mbps",
   customProjectName: string | null = null,
-  gradingMarker: string = ""
+  gradingMarker: string = "",
+  versionMode: 'numeric' | 'chinese' = 'numeric',
+  versionPrefix: string = 'V'
 ): Promise<VersionResult> {
   const result: VersionResult = {
     success: false,
@@ -309,7 +342,8 @@ export async function detectLatestVersionAndGenerateFilename(
       result.success = true;
       result.baseFilename = projectName;
       result.newVersion = 1;
-      result.newFilename = `${projectName}_${bitrate}${gradingMarker}_V1${fileExtension}`;
+      const versionStr1 = generateVersionStringWithSettings(1, versionMode, versionPrefix);
+      result.newFilename = `${projectName}_${bitrate}${gradingMarker}_${versionStr1}${fileExtension}`;
       
       console.log(`基础文件名: ${projectName}`);
       console.log(`新文件名: ${result.newFilename}`);
@@ -354,7 +388,8 @@ export async function detectLatestVersionAndGenerateFilename(
       result.success = true;
       result.baseFilename = projectName;
       result.newVersion = 1;
-      result.newFilename = `${projectName}_${bitrate}${gradingMarker}_V1${fileExtension}`;
+      const versionStr2 = generateVersionStringWithSettings(1, versionMode, versionPrefix);
+      result.newFilename = `${projectName}_${bitrate}${gradingMarker}_${versionStr2}${fileExtension}`;
       
       console.log(`基础文件名（来自项目名）: ${projectName}`);
       console.log(`新文件名: ${result.newFilename}`);
@@ -449,7 +484,7 @@ export async function detectLatestVersionAndGenerateFilename(
     console.log(`[步骤6] 选择文件扩展名: ${fileExtension} (编码: ${bitrate})`);
     
     // 生成新文件名（格式：项目名_码率_调色标记_版本号.扩展名）
-    const newVersionString = generateVersionString(result.newVersion, versionInfo.versionType);
+    const newVersionString = generateVersionStringWithSettings(result.newVersion, versionMode, versionPrefix);
     result.newFilename = `${baseFilename}_${bitrate}${gradingMarker}_${newVersionString}${fileExtension}`;
     
     console.log(`基础文件名（最终）: ${baseFilename}`);
