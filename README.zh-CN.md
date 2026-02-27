@@ -2,7 +2,7 @@
 
 > [English](README.md) | 简体中文
 
-![Version](https://img.shields.io/badge/version-1.0.0-blue) ![Premiere Pro](https://img.shields.io/badge/Premiere%20Pro-25.6.3%2B-purple) ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS-lightgrey)
+![Version](https://img.shields.io/badge/version-1.0.2-blue) ![Premiere Pro](https://img.shields.io/badge/Premiere%20Pro-25.6.3%2B-purple) ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS-lightgrey)
 
 专为 Adobe Premiere Pro 设计的自动化导出工具。一键智能分析序列分辨率，自动匹配最佳预设，智能管理文件版本号，让视频交付流程标准化、自动化。
 
@@ -40,11 +40,26 @@
     ProRes版本: "宣传片_ProRes422_定稿版_V4.mov"
     ```
 - **自定义项目名称**：支持导出前临时修改项目名称，且保持版本号延续。
+- **版本号格式选择**：在设置中可全局选择版本号风格：
+  - **数字格式**（默认）：支持自定义前缀，例如前缀 `V` 生成 `V1`、`V2`…；前缀 `第` 生成 `第1`、`第2`…
+  - **中文格式**：自动生成 `第一版`、`第二版`…`第二十版`
 - **状态标记管理**：
   - **调色状态**：手动标记当前导出是否已调色。
   - **定稿版标记**：标记为正式交付版本，使用高码率预设。
   - **智能检测**：自动识别已有文件的状态标记并同步 UI。
   - 支持标记：`已调色`、`调色`、`graded`、`cc` 等。
+
+### ⚙️ 全局设置（持久化）
+
+点击右上角 ⚙ 图标进入设置页面，以下配置会持久保存到本地，不随项目切换而丢失：
+
+| 设置项 | 说明 | 默认值 |
+|--------|------|--------|
+| 导出文件夹名称 | 自动创建的导出目录名称 | `导出` |
+| 版本号格式 | 数字（如 `V1`）或中文（如 `第一版`） | 数字格式 |
+| 数字版本号前缀 | 拼接在版本数字前的字符串 | `V` |
+
+返回主页时，导出路径和版本号显示会自动刷新，已手动修改的项目名称不会被覆盖。
 
 ## 📋 系统要求
 
@@ -138,7 +153,8 @@ yarn zip
 5. **标记状态**：
    - 勾选 "已调色" 标记当前序列已完成调色。
    - 勾选 "定稿版" 启用高码率导出（仅H.264格式）。
-6. **开始导出**：点击 "开始导出" 按钮，等待导出完成。
+6. **（可选）调整设置**：点击右上角 ⚙ 图标，可自定义导出文件夹名称和版本号格式，设置自动持久保存。
+7. **开始导出**：点击 "开始导出" 按钮，等待导出完成。
 
 ## 🔧 项目结构
 
@@ -152,6 +168,10 @@ src/
 │   ├── sequenceExporter.ts          # 序列导出
 │   └── FileSystemHelper.ts          # 文件系统辅助工具
 ├── api/                   # Premiere Pro API 封装
+├── components/
+│   └── SettingsView.vue             # 设置页面组件
+├── stores/
+│   └── settings.ts                  # 持久化设置 Store（UXP DataFolder）
 ├── main.vue               # 主 Vue 组件
 └── globals.ts             # 全局 UXP/Premiere Pro API 导入
 

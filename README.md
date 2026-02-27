@@ -2,7 +2,7 @@
 
 > English | [简体中文](README.zh-CN.md)
 
-![Version](https://img.shields.io/badge/version-1.0.0-blue) ![Premiere Pro](https://img.shields.io/badge/Premiere%20Pro-25.6.3%2B-purple) ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS-lightgrey)
+![Version](https://img.shields.io/badge/version-1.0.2-blue) ![Premiere Pro](https://img.shields.io/badge/Premiere%20Pro-25.6.3%2B-purple) ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS-lightgrey)
 
 An automated export tool designed for Adobe Premiere Pro. Intelligently analyzes sequence resolution with one click, automatically matches optimal presets, and manages file version numbers smartly to standardize and automate video delivery workflows.
 
@@ -40,11 +40,26 @@ Built on the **Bolt UXP** framework, fully migrated and modernized from legacy C
     ProRes version: "Promo_ProRes422_Final_V4.mov"
     ```
 - **Custom Project Names**: Supports temporary modification of project names before export while maintaining version continuity.
+- **Version Format Options**: Configure globally in Settings:
+  - **Numeric format** (default): Custom prefix + number, e.g. prefix `V` → `V1`, `V2`…
+  - **Chinese format**: Generates `第一版`, `第二版`… up to `第二十版`
 - **Status Marking Management**:
   - **Color Grading Status**: Manually mark whether current export is color graded.
   - **Final Version Mark**: Mark as official delivery version, uses high bitrate preset.
   - **Smart Detection**: Automatically recognizes status marks in existing files and syncs UI.
   - Supported marks: `已调色`, `调色`, `graded`, `cc`, etc.
+
+### ⚙️ Global Settings (Persistent)
+
+Click the ⚙ gear icon in the top-right corner to open Settings. All configurations are saved locally via UXP DataFolder and persist across project switches:
+
+| Setting | Description | Default |
+|---------|-------------|---------|
+| Export Folder Name | Name of the auto-created export directory | `导出` |
+| Version Format | Numeric (e.g. `V1`) or Chinese (e.g. `第一版`) | Numeric |
+| Numeric Version Prefix | String prepended before the version number | `V` |
+
+Returning to the main view auto-refreshes the export path and version display, while preserving any manually edited project name.
 
 ## 📋 System Requirements
 
@@ -138,7 +153,8 @@ yarn zip
 5. **Mark Status**:
    - Check "Color Graded" to mark current sequence as color graded.
    - Check "Final Version" to enable high bitrate export (H.264 format only).
-6. **Start Export**: Click "Start Export" button and wait for completion.
+6. **(Optional) Adjust Settings**: Click the ⚙ icon in the top-right to customize the export folder name and version format. Settings are saved automatically.
+7. **Start Export**: Click "Start Export" button and wait for completion.
 
 ## 🔧 Project Structure
 
@@ -152,6 +168,10 @@ src/
 │   ├── sequenceExporter.ts          # Sequence export
 │   └── FileSystemHelper.ts          # File system helper
 ├── api/                   # Premiere Pro API wrapper
+├── components/
+│   └── SettingsView.vue             # Settings page component
+├── stores/
+│   └── settings.ts                  # Persistent settings store (UXP DataFolder)
 ├── main.vue               # Main Vue component
 └── globals.ts             # Global UXP/Premiere Pro API imports
 
