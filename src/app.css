@@ -14,6 +14,12 @@
   -webkit-text-size-adjust: 100%;
 }
 
+html, body {
+  height: 100%;
+  margin: 0;
+  overflow: hidden; /* 滚动交由内部容器控制 */
+}
+
 a {
   font-weight: 500;
   color: #646cff;
@@ -31,18 +37,10 @@ body {
   /* min-height: 100vh; */
 }
 
-h1 {
-  font-size: 3.2em;
-  line-height: normal;
-}
-
-.card {
-  padding: 2em;
-}
-
 #app {
   max-width: 1280px;
   text-align: left;
+  height: 100%;
 }
 
 button {

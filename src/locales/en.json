@@ -34,7 +34,12 @@
     "save": "Save",
     "saveSuccess": "Settings saved",
     "saveFailed": "Save failed",
-    "reset": "Reset to Default"
+    "reset": "Reset to Default",
+    "archiveTitle": "Final Version Archive",
+    "archiveEnable": "Auto-archive when exporting final version",
+    "backupTitle": "Pre-Export Backup",
+    "backupSequence": "Backup sequence (duplicate active sequence in project panel)",
+    "backupProject": "Backup project file (save a .prproj copy in the project folder)"
   },
   "message": {
     "exportSuccess": "✅ Export successful!",
@@ -42,10 +47,28 @@
     "noProject": "No open project",
     "folderNotCreated": "Export folder not created yet",
     "refreshFailed": "Refresh failed",
-    "error": "Error"
+    "error": "Error",
+    "archiveSuccess": "✅ Archived to",
+    "archiveFailed": "Archive failed",
+    "archiveSkipped": "No archive folder set, skipped",
+    "backupSequenceSuccess": "✅ Sequence backed up as",
+    "backupSequenceFailed": "Sequence backup failed",
+    "backupProjectSuccess": "✅ Project backed up to",
+    "backupProjectFailed": "Project file backup failed"
   },
   "filename": {
     "graded": "_Graded",
     "finalVersion": "_Final"
+  },
+  "archive": {
+    "sectionTitle": "Final Archive",
+    "baseFolder": "Archive Root Folder",
+    "baseFolderPlaceholder": "No archive folder selected",
+    "selectFolder": "Choose Folder",
+    "folderTemplate": "Archive Folder Structure",
+    "folderTemplatePlaceholder": "YYYY|MM Results|MM_DD Project Name",
+    "templateHint": "Variables: YYYY · MM · DD · 项目名称 (project name); | = subfolder separator",
+    "pathPreview": "Preview",
+    "archiveResult": "Archived to"
   }
 }

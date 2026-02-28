@@ -6,6 +6,7 @@
 import { ref } from 'vue';
 import { uxp } from '../globals';
 
+// @ts-ignore - UXP 类型定义限制
 const fs = uxp.storage.localFileSystem;
 const SETTINGS_FILENAME = 'app-settings.json';
 
@@ -13,17 +14,32 @@ export interface AppSettings {
   exportFolderName: string;
   versionMode: 'numeric' | 'chinese';
   versionPrefix: string;
+  archiveEnabled: boolean;
+  archiveBasePath: string;
+  archiveFolderTemplate: string;
+  backupSequenceBeforeExport: boolean;
+  backupProjectBeforeExport: boolean;
 }
 
 // 默认导出文件夹名称（中文用户习惯）
 const DEFAULT_EXPORT_FOLDER_NAME = '导出';
 const DEFAULT_VERSION_MODE: 'numeric' | 'chinese' = 'numeric';
 const DEFAULT_VERSION_PREFIX = 'V';
+const DEFAULT_ARCHIVE_BASE_PATH = '';
+const DEFAULT_ARCHIVE_ENABLED = false;
+const DEFAULT_ARCHIVE_FOLDER_TEMPLATE = 'YYYY|MM|DD_项目名称';
+const DEFAULT_BACKUP_SEQUENCE = false;
+const DEFAULT_BACKUP_PROJECT = false;
 
 // 响应式设置状态（整个应用共享同一个 ref 实例）
 export const exportFolderName = ref<string>(DEFAULT_EXPORT_FOLDER_NAME);
 export const versionMode = ref<'numeric' | 'chinese'>(DEFAULT_VERSION_MODE);
 export const versionPrefix = ref<string>(DEFAULT_VERSION_PREFIX);
+export const archiveEnabled = ref<boolean>(DEFAULT_ARCHIVE_ENABLED);
+export const archiveBasePath = ref<string>(DEFAULT_ARCHIVE_BASE_PATH);
+export const archiveFolderTemplate = ref<string>(DEFAULT_ARCHIVE_FOLDER_TEMPLATE);
+export const backupSequenceBeforeExport = ref<boolean>(DEFAULT_BACKUP_SEQUENCE);
+export const backupProjectBeforeExport = ref<boolean>(DEFAULT_BACKUP_PROJECT);
 
 /** 从 UXP DataFolder 加载设置 */
 export async function loadSettings(): Promise<void> {
@@ -49,6 +65,21 @@ export async function loadSettings(): Promise<void> {
       if (settings.versionPrefix && typeof settings.versionPrefix === 'string') {
         versionPrefix.value = settings.versionPrefix;
       }
+      if (typeof settings.archiveBasePath === 'string') {
+        archiveBasePath.value = settings.archiveBasePath;
+      }
+      if (typeof settings.archiveEnabled === 'boolean') {
+        archiveEnabled.value = settings.archiveEnabled;
+      }
+      if (typeof settings.archiveFolderTemplate === 'string' && settings.archiveFolderTemplate.length > 0) {
+        archiveFolderTemplate.value = settings.archiveFolderTemplate;
+      }
+      if (typeof settings.backupSequenceBeforeExport === 'boolean') {
+        backupSequenceBeforeExport.value = settings.backupSequenceBeforeExport;
+      }
+      if (typeof settings.backupProjectBeforeExport === 'boolean') {
+        backupProjectBeforeExport.value = settings.backupProjectBeforeExport;
+      }
       console.log('[Settings] 加载成功:', settings);
     } else {
       console.log('[Settings] 未找到设置文件，使用默认值');
@@ -66,6 +97,11 @@ export async function saveSettings(): Promise<{ success: boolean; error?: string
       exportFolderName: exportFolderName.value,
       versionMode: versionMode.value,
       versionPrefix: versionPrefix.value,
+      archiveEnabled: archiveEnabled.value,
+      archiveBasePath: archiveBasePath.value,
+      archiveFolderTemplate: archiveFolderTemplate.value,
+      backupSequenceBeforeExport: backupSequenceBeforeExport.value,
+      backupProjectBeforeExport: backupProjectBeforeExport.value,
     };
     const content = JSON.stringify(settings, null, 2);
 

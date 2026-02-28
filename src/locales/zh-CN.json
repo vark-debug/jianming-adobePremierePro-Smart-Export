@@ -34,7 +34,12 @@
     "save": "保存",
     "saveSuccess": "设置已保存",
     "saveFailed": "保存失败",
-    "reset": "恢复默认"
+    "reset": "恢复默认",
+    "archiveTitle": "定稿归档设置",
+    "archiveEnable": "导出定稿版时自动归档",
+    "backupTitle": "导出前备份",
+    "backupSequence": "备份序列（在项目面板中复制当前序列）",
+    "backupProject": "备份工程文件（在工程目录保存 .prproj 副本）"
   },
   "message": {
     "exportSuccess": "✅ 导出成功！",
@@ -42,10 +47,28 @@
     "noProject": "没有打开的项目",
     "folderNotCreated": "导出文件夹尚未创建",
     "refreshFailed": "刷新失败",
-    "error": "错误"
+    "error": "错误",
+    "archiveSuccess": "✅ 已归档到",
+    "archiveFailed": "归档失败",
+    "archiveSkipped": "未设置归档目录，已跳过归档",
+    "backupSequenceSuccess": "✅ 序列已备份为",
+    "backupSequenceFailed": "序列备份失败",
+    "backupProjectSuccess": "✅ 工程已备份至",
+    "backupProjectFailed": "工程文件备份失败"
   },
   "filename": {
     "graded": "_已调色",
     "finalVersion": "_定稿版"
+  },
+  "archive": {
+    "sectionTitle": "定稿归档",
+    "baseFolder": "归档根目录",
+    "baseFolderPlaceholder": "尚未选择归档目录",
+    "selectFolder": "选择文件夹",
+    "folderTemplate": "归档文件夹结构",
+    "folderTemplatePlaceholder": "YYYY年|MM月结案项目|MM_DD项目名称",
+    "templateHint": "变量：YYYY年 · MM月 · DD日 · 项目名称；线上 | 为子文件夹分隔符",
+    "pathPreview": "预览路径",
+    "archiveResult": "已归档至"
   }
 }

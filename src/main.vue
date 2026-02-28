@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, nextTick } from "vue";
+import { ref, onMounted } from "vue";
 import { uxp, premierepro } from "./globals";
 import { getProjectLocation } from "./modules/projectLocationDetector";
 import { getOrCreateExportFolder } from "./modules/exportFolderManager";
@@ -10,8 +10,10 @@ import { FileSystemHelper } from "./modules/FileSystemHelper";
 import { detectLanguage } from "./modules/languageDetector";
 import { initI18n, useI18n } from "./locales";
 import SettingsView from "./components/SettingsView.vue";
-import { exportFolderName, versionMode, versionPrefix, loadSettings } from "./stores/settings";
+import { exportFolderName, versionMode, versionPrefix, archiveEnabled, archiveBasePath, archiveFolderTemplate, backupSequenceBeforeExport, backupProjectBeforeExport, loadSettings } from "./stores/settings";
 import { generateVersionStringWithSettings } from "./modules/fileVersioner";
+import { archiveExportedFile } from "./modules/archiveManager";
+import { backupCurrentSequence, backupProjectFile } from "./modules/preExportBackup";
 
 const { t } = useI18n();
 
@@ -43,6 +45,10 @@ const exportedFilePath = ref('');
 const previewVideo = ref<HTMLVideoElement | null>(null);
 
 const fileSystemHelper = new FileSystemHelper();
+
+// 归档状态
+const archiveResultPath = ref('');    // 本次归档后的目标文件夹路径（供弹窗显示）
+const archiveErrorMsg = ref('');      // 归档失败时的错误信息
 
 /**
  * 视频加载错误处理
@@ -347,6 +353,25 @@ async function startExport() {
     let finalFilename = versionResult.newFilename;
     
     console.log(`正在导出: ${finalFilename}`);
+
+    // 5.5 导出前备份（序列 + 工程文件）
+    const backupBaseName = `${customProjectName || projectName.value.trim()}_${generateVersionStringWithSettings(versionResult.newVersion, versionMode.value, versionPrefix.value)}`;
+    if (backupSequenceBeforeExport.value) {
+      const seqBackupResult = await backupCurrentSequence(backupBaseName);
+      if (seqBackupResult.success) {
+        console.log('[备份] ✓ 序列已备份为:', seqBackupResult.backupName);
+      } else {
+        console.warn('[备份] 序列备份失败（不影响导出）:', seqBackupResult.error);
+      }
+    }
+    if (backupProjectBeforeExport.value) {
+      const projBackupResult = await backupProjectFile(projectResult.projectPath, backupBaseName + '_备份');
+      if (projBackupResult.success) {
+        console.log('[备份] ✓ 工程文件已备份至:', projBackupResult.backupPath);
+      } else {
+        console.warn('[备份] 工程文件备份失败（不影响导出）:', projBackupResult.error);
+      }
+    }
     
     // 6. 执行导出
     const exportResult = await exportCurrentSequence(
@@ -362,6 +387,26 @@ async function startExport() {
     
     // 导出成功
     // alert(t('message.exportSuccess'));
+    // 归档处理（仅在勾选定稿版且设置了归档根目录时执行）
+    archiveResultPath.value = '';
+    archiveErrorMsg.value = '';
+    if (isFinalVersion.value && archiveEnabled.value && archiveBasePath.value && archiveFolderTemplate.value) {
+      console.log('[归档] 导出成功，开始归档定稿版...');
+      const archiveResult = await archiveExportedFile(
+        exportResult.exportPath!,
+        archiveBasePath.value,
+        archiveFolderTemplate.value,
+        projectName.value.trim() || 'project'
+      );
+      if (archiveResult.success) {
+        archiveResultPath.value = archiveResult.archivePath || '';
+        console.log('[归档] ✓ 归档成功:', archiveResultPath.value);
+      } else {
+        archiveErrorMsg.value = archiveResult.error || '';
+        console.error('[归档] ✗ 归档失败:', archiveErrorMsg.value);
+      }
+    }
+
     // 保存完整文件路径用于预览（需要转换为 file:// URL 形式）
     if (exportResult.exportPath) {
       console.log('[预览调试] 用于预览的原始路径:', exportResult.exportPath);
@@ -435,7 +480,7 @@ onMounted(async () => {
   } catch (error) {
     console.error('挂载时刷新项目信息失败:', error);
     // 显示错误信息给用户
-    exportPath.value = `初始化失败: ${error.message}`;
+    exportPath.value = `初始化失败: ${(error as any).message}`;
   }
 });
 
@@ -578,6 +623,15 @@ onMounted(async () => {
           <sp-button variant="cta" @click="openFolderAndCloseSuccessDialog">
             📁 {{ t('ui.openFolder') }}
           </sp-button>
+        </div>
+
+        <!-- 归档结果提示 -->
+        <div v-if="archiveResultPath" class="archive-dialog-result archive-dialog-success">
+          📦 {{ t('message.archiveSuccess') }}<br/>
+          <span class="archive-dialog-path">{{ archiveResultPath }}</span>
+        </div>
+        <div v-else-if="archiveErrorMsg" class="archive-dialog-result archive-dialog-error">
+          ⚠️ {{ t('message.archiveFailed') }}: {{ archiveErrorMsg }}
         </div>
       </div>
     </div>
@@ -742,5 +796,34 @@ onMounted(async () => {
       opacity: 1;
     }
   }
+}
+
+/* 成功弹窗中的归档结果 */
+.archive-dialog-result {
+  margin-top: 14px;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  text-align: left;
+  line-height: 1.6;
+}
+
+.archive-dialog-success {
+  background-color: rgba(80, 200, 120, 0.1);
+  border: 1px solid rgba(80, 200, 120, 0.4);
+  color: #7cd69e;
+}
+
+.archive-dialog-error {
+  background-color: rgba(220, 80, 80, 0.1);
+  border: 1px solid rgba(220, 80, 80, 0.4);
+  color: #e88080;
+}
+
+.archive-dialog-path {
+  font-size: 11px;
+  color: #a0cca0;
+  word-break: break-all;
+  opacity: 0.85;
 }
 </style>

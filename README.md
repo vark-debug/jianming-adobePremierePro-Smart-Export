@@ -2,7 +2,7 @@
 
 > English | [简体中文](README.zh-CN.md)
 
-![Version](https://img.shields.io/badge/version-1.0.2-blue) ![Premiere Pro](https://img.shields.io/badge/Premiere%20Pro-25.6.3%2B-purple) ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS-lightgrey)
+![Version](https://img.shields.io/badge/version-1.2.0-blue) ![Premiere Pro](https://img.shields.io/badge/Premiere%20Pro-25.6.3%2B-purple) ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS-lightgrey)
 
 An automated export tool designed for Adobe Premiere Pro. Intelligently analyzes sequence resolution with one click, automatically matches optimal presets, and manages file version numbers smartly to standardize and automate video delivery workflows.
 
@@ -49,6 +49,37 @@ Built on the **Bolt UXP** framework, fully migrated and modernized from legacy C
   - **Smart Detection**: Automatically recognizes status marks in existing files and syncs UI.
   - Supported marks: `已调色`, `调色`, `graded`, `cc`, etc.
 
+### 📦 Automatic Final Version Archiving
+
+After exporting with "Final Version" checked, the plugin can automatically **copy and archive** the exported file to a designated directory, making it easy to organize deliveries by project and month.
+
+- **Choose Archive Root Folder**: Set once in Settings — applies globally across all projects.
+- **Custom Folder Hierarchy Template**: Use `|` to separate folder levels. Supported variables:
+
+  | Variable | Description | Example (Feb 28, 2026) |
+  |----------|-------------|------------------------|
+  | `YYYY` | Four-digit year | `2026` |
+  | `MM` | Month (no zero-padding) | `2` |
+  | `DD` | Day (no zero-padding) | `28` |
+  | `项目名称` | Current project name | `Promo` |
+
+- **Live Path Preview**: See the full archive path update in real time as you type the template.
+- **Archive Result Feedback**: The success dialog shows the archive destination; errors are shown if archiving fails.
+
+**Template Example**:
+```
+Input:  YYYY年|MM月结案项目|MM_DD项目名称
+Result: D:\Archive\2026年\2月结案项目\2_28Promo\
+```
+
+### 💾 Pre-Export Automatic Backup
+
+Two independent backup options can be enabled in Settings. They run automatically each time you click "Start Export". Either option failing does not block the export.
+
+- **Backup Sequence**: Clones the active sequence inside the Premiere Pro project panel and names the copy `ProjectName_VersionNumber` (e.g. `Promo_V3`). Acts as a snapshot of the timeline state at export time for easy reference later.
+- **Backup Project File**: Copies the current `.prproj` file in binary to the same project directory, named `ProjectName_VersionNumber_Backup.prproj`. Does **not** change the project path currently open in Premiere Pro.
+- **Execution Order** (when both are enabled): Backup sequence → Backup project file (ensuring the backup includes the newly cloned sequence) → Export.
+
 ### ⚙️ Global Settings (Persistent)
 
 Click the ⚙ gear icon in the top-right corner to open Settings. All configurations are saved locally via UXP DataFolder and persist across project switches:
@@ -58,6 +89,11 @@ Click the ⚙ gear icon in the top-right corner to open Settings. All configurat
 | Export Folder Name | Name of the auto-created export directory | `导出` |
 | Version Format | Numeric (e.g. `V1`) or Chinese (e.g. `第一版`) | Numeric |
 | Numeric Version Prefix | String prepended before the version number | `V` |
+| Archive Root Folder | Top-level folder for final version archiving (set once, global) | Empty (no archiving) |
+| Auto-Archive Toggle | Whether to automatically archive when exporting final version | Off |
+| Archive Folder Structure | Subfolder hierarchy template; supports `YYYY` / `MM` / `DD` / `项目名称` variables, `\|` as level separator | `YYYY\|MM\|DD_项目名称` |
+| Backup Sequence on Export | Clones active sequence in the project panel before export, named `ProjectName_VersionNumber` | Off |
+| Backup Project File on Export | Saves a `.prproj` copy to the project directory before export, named `ProjectName_VersionNumber_Backup` | Off |
 
 Returning to the main view auto-refreshes the export path and version display, while preserving any manually edited project name.
 
@@ -153,8 +189,10 @@ yarn zip
 5. **Mark Status**:
    - Check "Color Graded" to mark current sequence as color graded.
    - Check "Final Version" to enable high bitrate export (H.264 format only).
-6. **(Optional) Adjust Settings**: Click the ⚙ icon in the top-right to customize the export folder name and version format. Settings are saved automatically.
-7. **Start Export**: Click "Start Export" button and wait for completion.
+6. **(Optional) Configure Archiving**: Click the ⚙ icon, select an archive root folder and set a folder structure template in Settings. All subsequent final version exports will archive automatically.
+7. **(Optional) Enable Pre-Export Backup**: In Settings, check "Backup Sequence" and/or "Backup Project File" to automatically back up before each export.
+8. **(Optional) Adjust Other Settings**: Customize the export folder name and version format. Settings are saved automatically.
+9. **Start Export**: Click "Start Export" and wait for completion. If archiving is configured, the success dialog will show the archive path.
 
 ## 🔧 Project Structure
 
@@ -166,10 +204,12 @@ src/
 │   ├── resolutionDetector.ts        # Resolution detection
 │   ├── fileVersioner.ts             # Smart version handling
 │   ├── sequenceExporter.ts          # Sequence export
+│   ├── archiveManager.ts            # Final version archive manager
+│   ├── preExportBackup.ts           # Pre-export backup (sequence + project file)
 │   └── FileSystemHelper.ts          # File system helper
 ├── api/                   # Premiere Pro API wrapper
 ├── components/
-│   └── SettingsView.vue             # Settings page component
+│   └── SettingsView.vue             # Settings page component (incl. archive config)
 ├── stores/
 │   └── settings.ts                  # Persistent settings store (UXP DataFolder)
 ├── main.vue               # Main Vue component
