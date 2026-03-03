@@ -2,7 +2,7 @@
 import { ref, computed, onMounted } from 'vue';
 import { useI18n } from '../locales';
 import { uxp } from '../globals';
-import { exportFolderName, versionMode, versionPrefix, archiveEnabled, archiveBasePath, archiveFolderTemplate, backupSequenceBeforeExport, backupProjectBeforeExport, saveSettings } from '../stores/settings';
+import { exportFolderName, versionMode, versionPrefix, archiveEnabled, archiveBasePath, archiveFolderTemplate, backupSequenceBeforeExport, backupProjectBeforeExport, showFilenameLabels, saveSettings } from '../stores/settings';
 import { previewArchivePath } from '../modules/archiveManager';
 
 // @ts-ignore - UXP 类型定义限制
@@ -21,6 +21,7 @@ const draftArchiveEnabled = ref(archiveEnabled.value);
 const draftArchiveTemplate = ref(archiveFolderTemplate.value);
 const draftBackupSequence = ref(backupSequenceBeforeExport.value);
 const draftBackupProject = ref(backupProjectBeforeExport.value);
+const draftShowFilenameLabels = ref(showFilenameLabels.value);
 const saveStatus = ref<'idle' | 'success' | 'error'>('idle');
 const saveErrorMsg = ref('');
 let statusTimer: ReturnType<typeof setTimeout> | null = null;
@@ -48,6 +49,7 @@ onMounted(() => {
   draftArchiveTemplate.value = archiveFolderTemplate.value;
   draftBackupSequence.value = backupSequenceBeforeExport.value;
   draftBackupProject.value = backupProjectBeforeExport.value;
+  draftShowFilenameLabels.value = showFilenameLabels.value;
 });
 
 /** 调用系统文件夹选择器 */
@@ -83,6 +85,7 @@ async function handleSave() {
   archiveFolderTemplate.value = draftArchiveTemplate.value;
   backupSequenceBeforeExport.value = draftBackupSequence.value;
   backupProjectBeforeExport.value = draftBackupProject.value;
+  showFilenameLabels.value = draftShowFilenameLabels.value;
 
   const result = await saveSettings();
 
@@ -105,6 +108,7 @@ function handleReset() {
   draftArchiveTemplate.value = DEFAULT_ARCHIVE_TEMPLATE;
   draftBackupSequence.value = false;
   draftBackupProject.value = false;
+  draftShowFilenameLabels.value = true;
 }
 
 function handleBack() {
@@ -176,6 +180,21 @@ function handleBack() {
         ></sp-textfield>
         <p class="settings-hint">{{ t('settings.versionPrefixHint') }}</p>
       </template>
+    </div>
+
+    <sp-divider size="medium"></sp-divider>
+
+    <!-- 文件名自动标签 -->
+    <div class="settings-section">
+      <sp-field-label class="backup-section-label">🏷️ {{ t('settings.filenameLabels') }}</sp-field-label>
+      <div class="backup-option">
+        <sp-checkbox
+          :checked="draftShowFilenameLabels"
+          @change="draftShowFilenameLabels = $event.target.checked">
+          {{ t('settings.filenameLabelsEnable') }}
+        </sp-checkbox>
+      </div>
+      <p class="settings-hint" style="margin-top: 6px;">{{ t('settings.filenameLabelsHint') }}</p>
     </div>
 
     <sp-divider size="medium"></sp-divider>

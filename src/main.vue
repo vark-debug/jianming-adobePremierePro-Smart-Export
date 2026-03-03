@@ -10,7 +10,7 @@ import { FileSystemHelper } from "./modules/FileSystemHelper";
 import { detectLanguage } from "./modules/languageDetector";
 import { initI18n, useI18n } from "./locales";
 import SettingsView from "./components/SettingsView.vue";
-import { exportFolderName, versionMode, versionPrefix, archiveEnabled, archiveBasePath, archiveFolderTemplate, backupSequenceBeforeExport, backupProjectBeforeExport, loadSettings } from "./stores/settings";
+import { exportFolderName, versionMode, versionPrefix, archiveEnabled, archiveBasePath, archiveFolderTemplate, backupSequenceBeforeExport, backupProjectBeforeExport, showFilenameLabels, loadSettings } from "./stores/settings";
 import { generateVersionStringWithSettings } from "./modules/fileVersioner";
 import { archiveExportedFile } from "./modules/archiveManager";
 import { backupCurrentSequence, backupProjectFile } from "./modules/preExportBackup";
@@ -36,6 +36,9 @@ const pickerKey = ref(0);
 // DOM 引用
 const exportFormatPicker = ref<any>(null);
 
+// @ts-ignore - UXP 类型定义限制
+const fs = uxp.storage.localFileSystem;
+
 // 内部状态
 let exportFolder: any = null;
 let detectedBitrate = '10mbps';
@@ -43,6 +46,10 @@ let detectedColorGrading: 'graded' | 'ungraded' | null = null;
 const showSuccessDialog = ref(false);
 const exportedFilePath = ref('');
 const previewVideo = ref<HTMLVideoElement | null>(null);
+
+// 自定义导出路径（会话内临时状态，不持久化）
+const useCustomExportPath = ref(false);
+const customExportPath = ref('');
 
 const fileSystemHelper = new FileSystemHelper();
 
@@ -88,8 +95,22 @@ async function openFolderAndCloseSuccessDialog() {
   closeSuccessDialog();
 }
 
-/**
- * 手动更新导出格式选择器的值
+/** * 选择自定义导出路径（在主面板直接操作）
+ */
+async function selectCustomExportPath() {
+  try {
+    const folder = await fs.getFolder();
+    if (!folder) return;
+    customExportPath.value = folder.nativePath;
+    useCustomExportPath.value = true;
+    exportFolder = folder;
+    exportPath.value = folder.nativePath;
+  } catch (e: any) {
+    console.error('[\u81ea\u5b9a\u4e49\u5bfc\u51fa\u8def\u5f84] \u9009\u62e9\u5931\u8d25:', e);
+  }
+}
+
+/** * 手动更新导出格式选择器的值
  */
 function updateExportFormatPicker() {
   pickerKey.value++;
@@ -112,7 +133,9 @@ async function refreshProjectInfo(options: { preserveProjectName?: boolean } = {
     
     console.log('项目信息:', projectResult);
     
-    // 2. 获取/创建导出文件夹
+    // 2. 获取/创建导出文件夹（刷新时始终使用智能路径，重置自定义路径状态）
+    useCustomExportPath.value = false;
+    customExportPath.value = '';
     const folderResult = await getOrCreateExportFolder(projectResult.projectPath, exportFolderName.value);
     if (!folderResult.success) {
       console.error('获取导出文件夹失败:', folderResult.error);
@@ -292,6 +315,22 @@ async function startExport() {
     
     // 2. 确保有导出文件夹
     if (!exportFolder) {
+      // 如果启用了自定义路径，尝试加载自定义文件夹
+      if (useCustomExportPath.value && customExportPath.value) {
+        try {
+          const pathUrl = customExportPath.value.includes('\\')
+            ? 'file:///' + customExportPath.value.replace(/\\/g, '/')
+            : 'file://' + customExportPath.value;
+          const customFolder = await fs.getEntryWithUrl(pathUrl);
+          if (customFolder && customFolder.isFolder) {
+            exportFolder = customFolder;
+          }
+        } catch (e: any) {
+          console.warn('[\u5bfc\u51fa] \u81ea\u5b9a\u4e49\u8def\u5f84\u52a0\u8f7d\u5931\u8d25，回\u9000至默\u8ba4\u8def\u5f84:', e.message);
+        }
+      }
+    }
+    if (!exportFolder) {
       const folderResult = await getOrCreateExportFolder(projectResult.projectPath, exportFolderName.value);
       if (!folderResult.success) {
         alert(`${t('message.error')}: ${folderResult.error}`);
@@ -350,9 +389,16 @@ async function startExport() {
     }
     
     // 使用生成的文件名（已包含调色标记）
-    let finalFilename = versionResult.newFilename;
+    let finalFilename: string;
+    if (!showFilenameLabels.value) {
+      // 关闭自动标签：仅使用用户在输入框中填写的项目名称 + 对应扩展名
+      const ext = versionResult.newFilename.match(/\.[^.]+$/)?.[0] ?? '.mp4';
+      finalFilename = customProjectName ? customProjectName + ext : versionResult.newFilename;
+    } else {
+      finalFilename = versionResult.newFilename;
+    }
     
-    console.log(`正在导出: ${finalFilename}`);
+    console.log(`正在导出: ${finalFilename} (showFilenameLabels=${showFilenameLabels.value})`);
 
     // 5.5 导出前备份（序列 + 工程文件）
     const backupBaseName = `${customProjectName || projectName.value.trim()}_${generateVersionStringWithSettings(versionResult.newVersion, versionMode.value, versionPrefix.value)}`;
@@ -519,10 +565,12 @@ onMounted(async () => {
         @input="projectName = $event.target.value"
         :placeholder="t('ui.loading')">
       </sp-textfield>
-      <span class="filename-tag">{{ bitrateDisplay }}</span>
-      <span class="filename-tag" v-if="gradingDisplay">{{ gradingDisplay }}</span>
-      <span class="filename-tag" v-if="finalVersionDisplay">{{ finalVersionDisplay }}</span>
-      <span class="filename-tag">{{ versionDisplay }}</span>
+      <template v-if="showFilenameLabels">
+        <span class="filename-tag">{{ bitrateDisplay }}</span>
+        <span class="filename-tag" v-if="gradingDisplay">{{ gradingDisplay }}</span>
+        <span class="filename-tag" v-if="finalVersionDisplay">{{ finalVersionDisplay }}</span>
+        <span class="filename-tag">{{ versionDisplay }}</span>
+      </template>
     </div>
     
     <!-- 操作按钮与状态选择 -->
@@ -575,14 +623,21 @@ onMounted(async () => {
     <sp-divider size="medium"></sp-divider>
     
     <!-- 导出路径显示 -->
-    <sp-field-label for="export-path-display">{{ t('ui.exportPath') }}</sp-field-label>
-    <sp-textfield 
-      id="export-path-display"
-      :value="exportPath"
-      readonly
-      quiet
-      style="width: 100%; margin-bottom: 12px; background-color: #242424;">
-    </sp-textfield>
+    <sp-field-label for="export-path-display">{{ t('ui.exportPath') }}
+      <span v-if="useCustomExportPath" class="custom-path-badge">✏️ {{ t('ui.customPathActive') }}</span>
+    </sp-field-label>
+    <div class="export-path-row">
+      <sp-textfield 
+        id="export-path-display"
+        :value="exportPath"
+        readonly
+        quiet
+        style="flex: 1; background-color: #242424;">
+      </sp-textfield>
+      <sp-button variant="secondary" size="s" @click="selectCustomExportPath" class="export-path-btn">
+        📁 {{ t('ui.changeExportPath') }}
+      </sp-button>
+    </div>
     
     <!-- 分隔线 -->
     <sp-divider size="medium"></sp-divider>
@@ -772,6 +827,30 @@ onMounted(async () => {
     // 视觉上与输入框基线对齐
     align-self: center;
   }
+}
+
+.export-path-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.export-path-btn {
+  flex-shrink: 0;
+}
+
+.custom-path-badge {
+  display: inline-block;
+  margin-left: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  color: #4a9eff;
+  background: rgba(74, 158, 255, 0.12);
+  border: 1px solid rgba(74, 158, 255, 0.3);
+  border-radius: 3px;
+  padding: 1px 5px;
+  vertical-align: middle;
 }
 
 .app-header {

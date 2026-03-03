@@ -12,6 +12,8 @@
     "colorGraded": "已调色",
     "finalVersion": "定稿版",
     "exportPath": "导出路径",
+    "changeExportPath": "更换路径",
+    "customPathActive": "自定义路径",
     "formatH264": "H.264（默认）",
     "formatProRes422": "数字中间片（ProRes 422）",
     "formatProRes444": "带通道（ProRes 444）",
@@ -39,7 +41,15 @@
     "archiveEnable": "导出定稿版时自动归档",
     "backupTitle": "导出前备份",
     "backupSequence": "备份序列（在项目面板中复制当前序列）",
-    "backupProject": "备份工程文件（在工程目录保存 .prproj 副本）"
+    "backupProject": "备份工程文件（在工程目录保存 .prproj 副本）",
+    "filenameLabels": "文件名自动标签",
+    "filenameLabelsEnable": "显示文件名自动标签（码率、调色、版本号）",
+    "filenameLabelsHint": "关闭后导出文件名只包含项目名称，不自动添加码率/调色/版本标签",
+    "customExportPath": "自定义导出路径",
+    "customExportPathEnable": "启用自定义导出路径",
+    "customExportPathHint": "启用后将导出到指定路径，而非项目目录下自动创建的「导出」文件夹",
+    "selectExportFolder": "选择文件夹",
+    "customExportPathPlaceholder": "尚未选择导出路径"
   },
   "message": {
     "exportSuccess": "✅ 导出成功！",

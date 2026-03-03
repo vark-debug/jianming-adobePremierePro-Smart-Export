@@ -19,6 +19,7 @@ export interface AppSettings {
   archiveFolderTemplate: string;
   backupSequenceBeforeExport: boolean;
   backupProjectBeforeExport: boolean;
+  showFilenameLabels: boolean;
 }
 
 // 默认导出文件夹名称（中文用户习惯）
@@ -30,8 +31,9 @@ const DEFAULT_ARCHIVE_ENABLED = false;
 const DEFAULT_ARCHIVE_FOLDER_TEMPLATE = 'YYYY|MM|DD_项目名称';
 const DEFAULT_BACKUP_SEQUENCE = false;
 const DEFAULT_BACKUP_PROJECT = false;
+const DEFAULT_SHOW_FILENAME_LABELS = true;
 
-// 响应式设置状态（整个应用共享同一个 ref 实例）
+// 响应式设置状态
 export const exportFolderName = ref<string>(DEFAULT_EXPORT_FOLDER_NAME);
 export const versionMode = ref<'numeric' | 'chinese'>(DEFAULT_VERSION_MODE);
 export const versionPrefix = ref<string>(DEFAULT_VERSION_PREFIX);
@@ -40,6 +42,7 @@ export const archiveBasePath = ref<string>(DEFAULT_ARCHIVE_BASE_PATH);
 export const archiveFolderTemplate = ref<string>(DEFAULT_ARCHIVE_FOLDER_TEMPLATE);
 export const backupSequenceBeforeExport = ref<boolean>(DEFAULT_BACKUP_SEQUENCE);
 export const backupProjectBeforeExport = ref<boolean>(DEFAULT_BACKUP_PROJECT);
+export const showFilenameLabels = ref<boolean>(DEFAULT_SHOW_FILENAME_LABELS);
 
 /** 从 UXP DataFolder 加载设置 */
 export async function loadSettings(): Promise<void> {
@@ -80,6 +83,9 @@ export async function loadSettings(): Promise<void> {
       if (typeof settings.backupProjectBeforeExport === 'boolean') {
         backupProjectBeforeExport.value = settings.backupProjectBeforeExport;
       }
+      if (typeof settings.showFilenameLabels === 'boolean') {
+        showFilenameLabels.value = settings.showFilenameLabels;
+      }
       console.log('[Settings] 加载成功:', settings);
     } else {
       console.log('[Settings] 未找到设置文件，使用默认值');
@@ -102,6 +108,7 @@ export async function saveSettings(): Promise<{ success: boolean; error?: string
       archiveFolderTemplate: archiveFolderTemplate.value,
       backupSequenceBeforeExport: backupSequenceBeforeExport.value,
       backupProjectBeforeExport: backupProjectBeforeExport.value,
+      showFilenameLabels: showFilenameLabels.value,
     };
     const content = JSON.stringify(settings, null, 2);
 
