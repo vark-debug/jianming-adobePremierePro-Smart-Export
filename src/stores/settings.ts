@@ -20,6 +20,7 @@ export interface AppSettings {
   backupSequenceBeforeExport: boolean;
   backupProjectBeforeExport: boolean;
   showFilenameLabels: boolean;
+  filenameTemplate: string;
 }
 
 // 默认导出文件夹名称（中文用户习惯）
@@ -32,6 +33,7 @@ const DEFAULT_ARCHIVE_FOLDER_TEMPLATE = 'YYYY|MM|DD_项目名称';
 const DEFAULT_BACKUP_SEQUENCE = false;
 const DEFAULT_BACKUP_PROJECT = false;
 const DEFAULT_SHOW_FILENAME_LABELS = true;
+const DEFAULT_FILENAME_TEMPLATE = '项目名称_编码器_码流_调色标签_定稿版标签_版本号';
 
 // 响应式设置状态
 export const exportFolderName = ref<string>(DEFAULT_EXPORT_FOLDER_NAME);
@@ -43,6 +45,7 @@ export const archiveFolderTemplate = ref<string>(DEFAULT_ARCHIVE_FOLDER_TEMPLATE
 export const backupSequenceBeforeExport = ref<boolean>(DEFAULT_BACKUP_SEQUENCE);
 export const backupProjectBeforeExport = ref<boolean>(DEFAULT_BACKUP_PROJECT);
 export const showFilenameLabels = ref<boolean>(DEFAULT_SHOW_FILENAME_LABELS);
+export const filenameTemplate = ref<string>(DEFAULT_FILENAME_TEMPLATE);
 
 /** 从 UXP DataFolder 加载设置 */
 export async function loadSettings(): Promise<void> {
@@ -86,6 +89,9 @@ export async function loadSettings(): Promise<void> {
       if (typeof settings.showFilenameLabels === 'boolean') {
         showFilenameLabels.value = settings.showFilenameLabels;
       }
+      if (typeof settings.filenameTemplate === 'string' && settings.filenameTemplate.length > 0) {
+        filenameTemplate.value = settings.filenameTemplate;
+      }
       console.log('[Settings] 加载成功:', settings);
     } else {
       console.log('[Settings] 未找到设置文件，使用默认值');
@@ -109,6 +115,7 @@ export async function saveSettings(): Promise<{ success: boolean; error?: string
       backupSequenceBeforeExport: backupSequenceBeforeExport.value,
       backupProjectBeforeExport: backupProjectBeforeExport.value,
       showFilenameLabels: showFilenameLabels.value,
+      filenameTemplate: filenameTemplate.value,
     };
     const content = JSON.stringify(settings, null, 2);
 

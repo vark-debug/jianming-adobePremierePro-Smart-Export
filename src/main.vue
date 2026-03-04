@@ -1,16 +1,16 @@
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { uxp, premierepro } from "./globals";
 import { getProjectLocation } from "./modules/projectLocationDetector";
 import { getOrCreateExportFolder } from "./modules/exportFolderManager";
 import { detectResolution } from "./modules/resolutionDetector";
-import { detectLatestVersionAndGenerateFilename } from "./modules/fileVersioner";
+import { detectLatestVersionAndGenerateFilename, FilenameTemplateVars, getBitrateEncoderLabel, calcAspectRatio, resolveFilenameTemplate } from "./modules/fileVersioner";
 import { exportCurrentSequence } from "./modules/sequenceExporter";
 import { FileSystemHelper } from "./modules/FileSystemHelper";
 import { detectLanguage } from "./modules/languageDetector";
 import { initI18n, useI18n } from "./locales";
 import SettingsView from "./components/SettingsView.vue";
-import { exportFolderName, versionMode, versionPrefix, archiveEnabled, archiveBasePath, archiveFolderTemplate, backupSequenceBeforeExport, backupProjectBeforeExport, showFilenameLabels, loadSettings } from "./stores/settings";
+import { exportFolderName, versionMode, versionPrefix, archiveEnabled, archiveBasePath, archiveFolderTemplate, backupSequenceBeforeExport, backupProjectBeforeExport, showFilenameLabels, filenameTemplate, loadSettings } from "./stores/settings";
 import { generateVersionStringWithSettings } from "./modules/fileVersioner";
 import { archiveExportedFile } from "./modules/archiveManager";
 import { backupCurrentSequence, backupProjectFile } from "./modules/preExportBackup";
@@ -293,6 +293,40 @@ async function onFinalVersionChange(event: any) {
 }
 
 /**
+ * 主页文件名模板实时预览（计算属性）
+ * 根据当前 UI 状态 + 用户配置模板实时计算最终文件名预览
+ */
+const mainFilenamePreview = computed(() => {
+  if (!showFilenameLabels.value) return '';
+
+  // 从 bitrateDisplay 反推当前编解码器/码流标签（保持与 updateBitrateDisplay 一致）
+  let encoderLabel = 'H.264';
+  let bitrateLabel = '10Mbps';
+  if (exportFormat.value === 'prores422') {
+    encoderLabel = 'ProRes'; bitrateLabel = '422';
+  } else if (exportFormat.value === 'prores444') {
+    encoderLabel = 'ProRes'; bitrateLabel = '444';
+  } else {
+    const raw = isFinalVersion.value ? detectedBitrate : '10mbps';
+    bitrateLabel = raw.replace('mbps', 'Mbps');
+  }
+
+  const verStr = versionDisplay.value.replace(/^_/, '') || 'V1';
+  const ext = (exportFormat.value === 'prores422' || exportFormat.value === 'prores444') ? '.mov' : '.mp4';
+
+  const name = resolveFilenameTemplate(filenameTemplate.value, {
+    项目名称:   projectName.value || '项目名称',
+    编码器:     encoderLabel,
+    码流:       bitrateLabel,
+    调色标签:   isColorGraded.value ? '已调色' : '',
+    定稿版标签: isFinalVersion.value ? '定稿版' : '',
+    版本号:     verStr,
+  });
+
+  return name + ext;
+});
+
+/**
  * 开始导出
  */
 async function startExport() {
@@ -342,6 +376,8 @@ async function startExport() {
     // 3. 确定最终码率和预设
     let finalBitrate = detectedBitrate;
     let finalPresetName = '';
+    let resWidth = 0;
+    let resHeight = 0;
     
     if (exportFormat.value === "prores422") {
       finalBitrate = "prores422";
@@ -357,6 +393,8 @@ async function startExport() {
         if (resolutionResult.success) {
           finalBitrate = resolutionResult.bitrate;
           finalPresetName = resolutionResult.recommendedPreset;
+          resWidth = resolutionResult.width;
+          resHeight = resolutionResult.height;
         }
       } else {
         // 默认：使用 H.264 10mbps
@@ -373,14 +411,74 @@ async function startExport() {
     const finalVersionMarker = isFinalVersion.value ? t('filename.finalVersion') : '';
     const combinedMarker = gradingMarker + finalVersionMarker;
     
-    // 5. 检测版本并生成文件名（传入组合标记）
+    // 4.5 获取模板变量（序列名称、画面比例、编解码器信息）
+    const now = new Date();
+    let sequenceName = '';
+    let aspectRatio = '';
+    
+    // 如果前面没有获取分辨率，尝试再获取一次（用于 ProRes 和非定稿版 H.264）
+    if (!resWidth || !resHeight) {
+      try {
+        const project = await premierepro.Project.getActiveProject();
+        if (project) {
+          const sequence = await project.getActiveSequence();
+          if (sequence) {
+            sequenceName = sequence.name || '';
+            const seqSettings = await sequence.getSettings();
+            if (seqSettings) {
+              const frameRect = await seqSettings.getVideoFrameRect();
+              if (frameRect && frameRect.width && frameRect.height) {
+                resWidth = frameRect.width;
+                resHeight = frameRect.height;
+              }
+            }
+          }
+        }
+      } catch (e: any) {
+        console.warn('[导出] 获取序列信息失败（不影响导出）:', e.message);
+      }
+    } else {
+      // 分辨率已获取，再单独拿序列名
+      try {
+        const project = await premierepro.Project.getActiveProject();
+        if (project) {
+          const sequence = await project.getActiveSequence();
+          if (sequence) sequenceName = sequence.name || '';
+        }
+      } catch (_) { /* 忽略，序列名不影响导出 */ }
+    }
+    
+    if (resWidth && resHeight) {
+      aspectRatio = calcAspectRatio(resWidth, resHeight);
+    }
+    
+    // 构建编解码器和码流显示标签
+    const { encoder: encoderLabel, bitrate: bitrateLabel } = getBitrateEncoderLabel(finalBitrate);
+    
+    // 构建文件名模板变量（版本号由 detectLatestVersionAndGenerateFilename 内部填入）
+    const templateVarsForExport: Omit<FilenameTemplateVars, '版本号'> = {
+      YYYY:     String(now.getFullYear()),
+      MM:       String(now.getMonth() + 1).padStart(2, '0'),
+      DD:       String(now.getDate()).padStart(2, '0'),
+      项目名称:   customProjectName || undefined,
+      序列名称:   sequenceName,
+      编码器:     encoderLabel,
+      码流:       bitrateLabel,
+      比例:       aspectRatio,
+      调色标签:   isColorGraded.value ? '已调色' : '',
+      定稿版标签: isFinalVersion.value ? '定稿版' : '',
+    };
+    
+    // 5. 检测版本并生成文件名（支持模板和旧版两种模式）
     const versionResult = await detectLatestVersionAndGenerateFilename(
       exportFolder,
       finalBitrate,
       customProjectName || null,
       combinedMarker,
       versionMode.value,
-      versionPrefix.value
+      versionPrefix.value,
+      showFilenameLabels.value ? filenameTemplate.value : undefined,
+      showFilenameLabels.value ? templateVarsForExport : undefined
     );
     
     if (!versionResult.success) {
@@ -565,12 +663,11 @@ onMounted(async () => {
         @input="projectName = $event.target.value"
         :placeholder="t('ui.loading')">
       </sp-textfield>
-      <template v-if="showFilenameLabels">
-        <span class="filename-tag">{{ bitrateDisplay }}</span>
-        <span class="filename-tag" v-if="gradingDisplay">{{ gradingDisplay }}</span>
-        <span class="filename-tag" v-if="finalVersionDisplay">{{ finalVersionDisplay }}</span>
-        <span class="filename-tag">{{ versionDisplay }}</span>
-      </template>
+    </div>
+    <!-- 文件名模板预览 -->
+    <div v-if="showFilenameLabels && mainFilenamePreview" class="filename-preview-hint">
+      <span class="filename-preview-icon">📄</span>
+      <span class="filename-preview-text">{{ mainFilenamePreview }}</span>
     </div>
     
     <!-- 操作按钮与状态选择 -->
@@ -809,23 +906,39 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   gap: 0;
-  margin-bottom: 8px;
+  margin-bottom: 4px;
   overflow: hidden;
 
   sp-textfield {
     flex: 1;
     min-width: 0;
   }
+}
 
-  .filename-tag {
+.filename-preview-hint {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 8px;
+  padding: 3px 6px;
+  background: #1a1a1a;
+  border-left: 2px solid #555;
+  border-radius: 0 3px 3px 0;
+  overflow: hidden;
+
+  .filename-preview-icon {
+    font-size: 11px;
     flex-shrink: 0;
+    opacity: 0.7;
+  }
+
+  .filename-preview-text {
+    font-size: 11px;
+    color: #999;
     white-space: nowrap;
-    font-size: 13px;
-    color: #bbb;
-    line-height: 1;
-    padding: 0 2px;
-    // 视觉上与输入框基线对齐
-    align-self: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-family: monospace;
   }
 }
 

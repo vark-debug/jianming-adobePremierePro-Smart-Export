@@ -1,6 +1,6 @@
 # PremierePro-Smart-Export Copilot Instructions
 
-一个基于 **Bolt UXP** 框架的 Adobe Premiere Pro 自动化导出插件。使用 Vue 3 + TypeScript + Vite 构建，从旧版 CommonJS 项目完整迁移。核心功能：智能检测分辨率、自动版本管理、一键导出。
+**版本 1.4.0** — 一个基于 **Bolt UXP** 框架的 Adobe Premiere Pro 自动化导出插件。使用 Vue 3 + TypeScript + Vite 构建，从旧版 CommonJS 项目完整迁移。核心功能：智能检测分辨率、自动版本管理、可配置文件名模板、归档管理、导出前备份、多格式导出（H.264/ProRes）、一键导出。
 
 ## 技术栈 & 关键约束
 
@@ -20,13 +20,35 @@
 3. **分辨率检测** ([resolutionDetector.ts](src/modules/resolutionDetector.ts)): 通过 `sequence.getSettings().getVideoFrameRect()` 判断 4K (≥3840px) 或 1080p，推荐 48mbps/10mbps 码率
 4. **版本号智能处理** ([fileVersioner.ts](src/modules/fileVersioner.ts)): 
    - **递归遍历**导出文件夹所有视频文件 (`.mp4`, `.mov`, `.avi`, `.mkv`, `.mxf`)
-   - **版本号提取**: 识别 `V1/V2/V3...` 和 `第一版/第二版...` 格式
+   - **版本号提取**: 识别 `V1/V2/V3...` 和 `第一版/第二版...` 格式，支持自定义前缀（`versionPrefix`）
+   - **版本模式**: `numeric`（如 V1/V2）或 `chinese`（如 第一版/第二版），由 `versionMode` 设置控制
    - **智能清理**: 移除日期标记（`2025-2-3`、`8月19日`）、码率标记、调色标记、定稿版标记
    - **状态检测**: 识别 `已调色`/`调色`/`graded`/`cc` 和 `定稿版`/`final` 关键词
-   - **新文件名生成**: `项目名_码率_调色状态_定稿版_版本号.扩展名`（如 `宣传片_H.264_48Mbps_已调色_定稿版_V4.mp4`）
-5. **序列导出** ([sequenceExporter.ts](src/modules/sequenceExporter.ts)): 使用 `EncoderManager.exportSequence()` + `public/epr/*.epr` 预设文件
+   - **文件名模板**: 通过 `resolveFilenameTemplate(template, vars)` 解析，支持变量：`YYYY`、`MM`、`DD`、`项目名称`、`序列名称`、`码流`、`编码器`、`比例`、`调色标签`、`定稿版标签`、`版本号`；空值段自动省略
+   - 默认模板：`项目名称_编码器_码流_调色标签_定稿版标签_版本号`（可在设置中自定义）
+   - `previewFilenameTemplate()` 供 UI 实时预览
+5. **序列导出** ([sequenceExporter.ts](src/modules/sequenceExporter.ts)): 使用 `EncoderManager.exportSequence()` + `public/epr/*.epr` 预设文件（H.264 10Mbps/48Mbps、ProRes 422/444）；HEVC 预设文件（`.epr`）已备好但 Adobe 暂未开放对应 API，**当前不可用**
+6. **归档管理**（可选，[archiveManager.ts](src/modules/archiveManager.ts)）: 定稿版文件自动复制到自定义归档目录；路径由模板生成（`|` 分隔层级，支持 `YYYY`/`MM`/`DD`/`项目名称` 变量）
+7. **导出前备份**（可选，[preExportBackup.ts](src/modules/preExportBackup.ts)）: 导出前克隆活动序列（项目面板追加备份副本）和/或在工程文件目录创建 `.prproj` 带时间戳备份副本
 
 **重要**: 所有模块返回统一的 `{ success, data?, error? }` 结果对象格式。
+
+### 设置系统
+
+全局设置通过 [src/stores/settings.ts](src/stores/settings.ts) 管理，使用 **UXP DataFolder** 持久化（不受项目切换影响），由 [components/SettingsView.vue](src/components/SettingsView.vue) 提供 UI：
+
+| 设置项 | 类型 | 默认值 | 说明 |
+|--------|------|--------|------|
+| `exportFolderName` | string | `'导出'` | 导出文件夹名称 |
+| `versionMode` | `'numeric'\|'chinese'` | `'numeric'` | 版本号模式 |
+| `versionPrefix` | string | `'V'` | 版本号前缀（数字模式） |
+| `filenameTemplate` | string | `'项目名称_编码器_码流_调色标签_定稿版标签_版本号'` | 文件名模板 |
+| `archiveEnabled` | boolean | `false` | 是否启用归档 |
+| `archiveBasePath` | string | `''` | 归档根目录（原生路径） |
+| `archiveFolderTemplate` | string | `'YYYY\|MM\|DD_项目名称'` | 归档路径模板 |
+| `backupSequenceBeforeExport` | boolean | `false` | 导出前备份序列 |
+| `backupProjectBeforeExport` | boolean | `false` | 导出前备份工程文件 |
+| `showFilenameLabels` | boolean | `true` | UI 是否显示文件名字段标签 |
 
 ## 关键架构决策 & 陷阱
 
@@ -100,14 +122,16 @@
 - `module.exports = { ... }` → `export const func = ...`
 - 旧版 `.epr` 预设文件位于项目根 `epr/` → 新版在 `public/epr/`
 
-### 智能文件版本命名
-- 支持版本号：`V1/V2/V3...` 或 `第一版/第二版...`
-- 自动清理日期标记（`2025-2-3`、`8月19日`）、码率标记、调色标记、定稿版标记
-- 输出格式：`项目名_码率_调色状态_定稿版_版本号.扩展名`
-- 示例：
+### 智能文件版本命名（模板驱动）
+- **文件名由模板生成**，默认模板：`项目名称_编码器_码流_调色标签_定稿版标签_版本号`
+- 空值段自动省略（如无调色标签时 `_调色标签` 整段省略）
+- 模板变量：`YYYY`/`MM`/`DD`（日期）、`项目名称`、`序列名称`、`码流`、`编码器`、`比例`、`调色标签`、`定稿版标签`、`版本号`
+- 版本号支持：数字模式（`V1`/`V2`）或中文模式（`第一版`/`第二版`），前缀可自定义
+- 示例（默认模板）：
   - 默认版本：`宣传片_H.264_10Mbps_V1.mp4`
   - 调色版本：`宣传片_H.264_10Mbps_已调色_V2.mp4`
   - 定稿版本：`宣传片_H.264_48Mbps_已调色_定稿版_V3.mp4`
+  - HEVC版本：（预留，目前 Adobe 未开放 API，暂不可用）
 
 ### 状态标记系统
 - **调色状态标记**：`已调色`、`调色`、`graded`、`cc`
@@ -117,6 +141,22 @@
   - 定稿版模式：根据分辨率自动选择码率（4K用48mbps，1080p用10mbps）
   - ProRes格式：不受定稿版影响，始终使用固定预设
 - 自动同步 UI：检测已有文件的状态标记并更新界面
+
+### 语言检测
+- [languageDetector.ts](src/modules/languageDetector.ts) 通过 `uxp.host.uiLocale`（后备 `navigator.language`）检测运行环境语言
+- 返回 `isChineseSimplified`/`isChineseTraditional`/`isEnglish` 布尔值
+
+### 归档功能
+- 由 [archiveManager.ts](src/modules/archiveManager.ts) 实现，仅在用户启用归档且设置了 `archiveBasePath` 时生效
+- 归档路径模板支持 `YYYY`/`MM`/`DD`/`项目名称`，`|` 为层级分隔符
+- 示例：`YYYY年|MM月结案|项目名称` → `2026年/3月结案/宣传片/`
+- `previewArchivePath(basePath, template, projectName)` 可生成预览路径
+
+### 导出前备份
+- 由 [preExportBackup.ts](src/modules/preExportBackup.ts) 实现
+- `backupCurrentSequence()`：在项目面板中克隆活动序列，命名含时间戳
+- `backupProjectFile()`：在 `.prproj` 同级目录创建带时间戳的备份副本
+- 推荐顺序：先备份序列 → 再备份工程 → 再导出（确保工程备份包含序列克隆）
 
 ## 常见问题排查
 

@@ -29,6 +29,148 @@ interface VersionInfo {
 }
 
 /**
+ * 文件名模板变量接口
+ * 模板使用 _ 作为段分隔符，空值段自动省略
+ *
+ * 示例模板：项目名称_编码器_码流_调色标签_定稿版标签_版本号
+ * 支持的变量：
+ *   YYYY      → 当前四位年份（如 2026）
+ *   MM        → 当前月份，补零（如 03）
+ *   DD        → 当前日期，补零（如 04）
+ *   项目名称   → 项目名称
+ *   序列名称   → 活动序列名称
+ *   码流       → 码率标签（如 10Mbps、48Mbps、422、444）
+ *   编码器     → 编码器名称（如 H.264、ProRes）
+ *   比例       → 画面比例（如 16:9）
+ *   调色标签   → 调色状态（如 已调色，未勾选时为空）
+ *   定稿版标签 → 定稿状态（如 定稿版，未勾选时为空）
+ *   版本号     → 版本字符串（如 V1、第一版）
+ */
+export interface FilenameTemplateVars {
+  YYYY?: string;
+  MM?: string;
+  DD?: string;
+  项目名称?: string;
+  序列名称?: string;
+  码流?: string;
+  编码器?: string;
+  比例?: string;
+  调色标签?: string;
+  定稿版标签?: string;
+  版本号?: string;
+}
+
+/**
+ * 辅助函数：计算最大公约数
+ */
+function gcd(a: number, b: number): number {
+  return b === 0 ? a : gcd(b, a % b);
+}
+
+/**
+ * 根据宽高计算画面比例字符串（如 16:9）
+ */
+export function calcAspectRatio(width: number, height: number): string {
+  if (!width || !height) return '';
+  const g = gcd(Math.abs(width), Math.abs(height));
+  const w = width / g;
+  const h = height / g;
+  // 仅当两边都不超过 100 时才显示简化比例，否则显示 WxH
+  if (w <= 100 && h <= 100) {
+    return `${w}:${h}`;
+  }
+  return `${width}x${height}`;
+}
+
+/**
+ * 根据 finalBitrate 字符串返回编码器显示名称
+ */
+export function getBitrateEncoderLabel(finalBitrate: string): { encoder: string; bitrate: string } {
+  const b = finalBitrate.toLowerCase();
+  if (b === 'prores422') return { encoder: 'ProRes', bitrate: '422' };
+  if (b === 'prores444') return { encoder: 'ProRes', bitrate: '444' };
+  if (b === '48mbps') return { encoder: 'H.264', bitrate: '48Mbps' };
+  return { encoder: 'H.264', bitrate: '10Mbps' };
+}
+
+/**
+ * 解析文件名模板，返回文件名基础部分（不含扩展名）
+ *
+ * 规则：
+ *  1. 以 _ 为段分隔符拆分模板
+ *  2. 对每个段进行变量替换（较长变量名优先，避免子串干扰）
+ *  3. 过滤掉替换后为空的段
+ *  4. 用 _ 重新拼接剩余段
+ *
+ * @param template  - 模板字符串（如 "项目名称_编码器_码流_调色标签_定稿版标签_版本号"）
+ * @param vars      - 各变量的实际值
+ * @returns 解析后的文件名基础部分
+ */
+export function resolveFilenameTemplate(template: string, vars: FilenameTemplateVars): string {
+  const now = new Date();
+
+  const varMap: Record<string, string> = {
+    'YYYY': vars.YYYY ?? now.getFullYear().toString(),
+    'MM':   vars.MM   ?? String(now.getMonth() + 1).padStart(2, '0'),
+    'DD':   vars.DD   ?? String(now.getDate()).padStart(2, '0'),
+    '项目名称':   vars.项目名称   ?? '',
+    '序列名称':   vars.序列名称   ?? '',
+    '码流':       vars.码流       ?? '',
+    '编码器':     vars.编码器     ?? '',
+    '比例':       vars.比例       ?? '',
+    '调色标签':   vars.调色标签   ?? '',
+    '定稿版标签': vars.定稿版标签 ?? '',
+    '版本号':     vars.版本号     ?? '',
+  };
+
+  // 按变量名长度降序排列，防止"项目名称"被"项目"等更短的字符串提前匹配
+  const sortedKeys = Object.keys(varMap).sort((a, b) => b.length - a.length);
+
+  const segments = template.split('_');
+  const resolvedSegments: string[] = [];
+
+  for (const segment of segments) {
+    let resolved = segment;
+    for (const key of sortedKeys) {
+      // 全局替换
+      resolved = resolved.split(key).join(varMap[key]);
+    }
+    // 过滤空段（变量为空时整段省略）
+    if (resolved.trim() !== '') {
+      resolvedSegments.push(resolved.trim());
+    }
+  }
+
+  return resolvedSegments.join('_');
+}
+
+/**
+ * 根据 resolveFilenameTemplate 生成预览字符串（供 UI 展示）
+ */
+export function previewFilenameTemplate(
+  template: string,
+  sampleProjectName: string = '项目名称',
+  sampleSequenceName: string = '序列01',
+  sampleVersion: string = 'V1',
+  sampleEncoder: string = 'H.264',
+  sampleBitrate: string = '10Mbps',
+  sampleRatio: string = '16:9',
+  sampleGrading: string = '',
+  sampleFinal: string = ''
+): string {
+  return resolveFilenameTemplate(template, {
+    项目名称:   sampleProjectName,
+    序列名称:   sampleSequenceName,
+    版本号:     sampleVersion,
+    编码器:     sampleEncoder,
+    码流:       sampleBitrate,
+    比例:       sampleRatio,
+    调色标签:   sampleGrading,
+    定稿版标签: sampleFinal,
+  });
+}
+
+/**
  * 从字符串中移除日期标记
  */
 function removeDateMarkers(str: string): string {
@@ -284,7 +426,11 @@ async function traverseFolder(folder: any, videoFiles: any[]): Promise<void> {
  * @param exportFolder - 导出文件夹对象
  * @param bitrate - 码率 (如 "10mbps" 或 "48mbps" 或 "prores422")
  * @param customProjectName - 用户自定义的项目名称（可选）
- * @param gradingMarker - 调色标记（如 "_已调色" 或 ""）
+ * @param gradingMarker - 调色标记（如 "_已调色" 或 ""）[兼容旧逻辑，模板模式下被 templateVars 覆盖]
+ * @param versionMode - 版本格式
+ * @param versionPrefix - 版本前缀
+ * @param filenameTemplate - 文件名模板字符串（可选，提供时使用模板生成文件名）
+ * @param templateVars - 模板变量（可选，版本号由函数内部填入）
  * @returns 文件版本信息
  */
 export async function detectLatestVersionAndGenerateFilename(
@@ -293,7 +439,9 @@ export async function detectLatestVersionAndGenerateFilename(
   customProjectName: string | null = null,
   gradingMarker: string = "",
   versionMode: 'numeric' | 'chinese' = 'numeric',
-  versionPrefix: string = 'V'
+  versionPrefix: string = 'V',
+  filenameTemplate?: string,
+  templateVars?: Omit<FilenameTemplateVars, '版本号'>
 ): Promise<VersionResult> {
   const result: VersionResult = {
     success: false,
@@ -343,7 +491,15 @@ export async function detectLatestVersionAndGenerateFilename(
       result.baseFilename = projectName;
       result.newVersion = 1;
       const versionStr1 = generateVersionStringWithSettings(1, versionMode, versionPrefix);
-      result.newFilename = `${projectName}_${bitrate}${gradingMarker}_${versionStr1}${fileExtension}`;
+      if (filenameTemplate && templateVars !== undefined) {
+        result.newFilename = resolveFilenameTemplate(filenameTemplate, {
+          ...templateVars,
+          项目名称: templateVars.项目名称 ?? projectName,
+          版本号: versionStr1,
+        }) + fileExtension;
+      } else {
+        result.newFilename = `${projectName}_${bitrate}${gradingMarker}_${versionStr1}${fileExtension}`;
+      }
       
       console.log(`基础文件名: ${projectName}`);
       console.log(`新文件名: ${result.newFilename}`);
@@ -389,7 +545,15 @@ export async function detectLatestVersionAndGenerateFilename(
       result.baseFilename = projectName;
       result.newVersion = 1;
       const versionStr2 = generateVersionStringWithSettings(1, versionMode, versionPrefix);
-      result.newFilename = `${projectName}_${bitrate}${gradingMarker}_${versionStr2}${fileExtension}`;
+      if (filenameTemplate && templateVars !== undefined) {
+        result.newFilename = resolveFilenameTemplate(filenameTemplate, {
+          ...templateVars,
+          项目名称: templateVars.项目名称 ?? projectName,
+          版本号: versionStr2,
+        }) + fileExtension;
+      } else {
+        result.newFilename = `${projectName}_${bitrate}${gradingMarker}_${versionStr2}${fileExtension}`;
+      }
       
       console.log(`基础文件名（来自项目名）: ${projectName}`);
       console.log(`新文件名: ${result.newFilename}`);
@@ -438,14 +602,22 @@ export async function detectLatestVersionAndGenerateFilename(
       console.log(`[步骤2] 去除版本号: "${baseFilename}"`);
     }
     
-    // 去除可能存在的码率标记
-    baseFilename = baseFilename.replace(/_\d+mbps/i, '').trim();
+    // 去除可能存在的码率标记（数字+mbps，大小写均匹配）
+    baseFilename = baseFilename.replace(/_\d+(?:\.\d+)?mbps/ig, '').trim();
     console.log(`[步骤3] 去除码率标记: "${baseFilename}"`);
     
-    // 去除 ProRes 标记
+    // 去除编码器标签（模板新增）
+    baseFilename = baseFilename.replace(/_H\.264/ig, '').trim();
+    baseFilename = baseFilename.replace(/_HEVC/ig, '').trim();
+    baseFilename = baseFilename.replace(/_ProRes/ig, '').trim();
+    console.log(`[步骤3.0] 去除编码器标签: "${baseFilename}"`);
+    
+    // 去除 ProRes 旧式整体标记 & 短码率标签（422/444）
     baseFilename = baseFilename.replace(/_prores422/i, '').trim();
     baseFilename = baseFilename.replace(/_prores444/i, '').trim();
-    console.log(`[步骤3.1] 去除 ProRes 标记: "${baseFilename}"`);
+    baseFilename = baseFilename.replace(/_422\b/g, '').trim();
+    baseFilename = baseFilename.replace(/_444\b/g, '').trim();
+    console.log(`[步骤3.1] 去除 ProRes/短码率标记: "${baseFilename}"`);
     
     // 去除调色标记
     baseFilename = baseFilename.replace(/_已调色/ig, '').trim();
@@ -456,6 +628,14 @@ export async function detectLatestVersionAndGenerateFilename(
     baseFilename = baseFilename.replace(/_cc/ig, '').trim();
     console.log(`[步骤3.2] 去除调色标记: "${baseFilename}"`);
     
+    // 去除定稿版标记（模板新增）
+    baseFilename = baseFilename.replace(/_定稿版/ig, '').trim();
+    baseFilename = baseFilename.replace(/_final/ig, '').trim();
+    console.log(`[步骤3.3] 去除定稿版标记: "${baseFilename}"`);
+    
+    // 去除日期段（YYYY / MM / DD 独立段）
+    baseFilename = baseFilename.replace(/_\d{4}(?=_|$)/g, '').trim(); // _2026
+    baseFilename = baseFilename.replace(/_\d{2}(?=_|$)/g, '').trim(); // _03 / _04
     // 清理日期标记
     baseFilename = removeDateMarkers(baseFilename);
     console.log(`[步骤4] 清理日期标记: "${baseFilename}"`);
@@ -483,9 +663,17 @@ export async function detectLatestVersionAndGenerateFilename(
     }
     console.log(`[步骤6] 选择文件扩展名: ${fileExtension} (编码: ${bitrate})`);
     
-    // 生成新文件名（格式：项目名_码率_调色标记_版本号.扩展名）
+    // 生成新文件名
     const newVersionString = generateVersionStringWithSettings(result.newVersion, versionMode, versionPrefix);
-    result.newFilename = `${baseFilename}_${bitrate}${gradingMarker}_${newVersionString}${fileExtension}`;
+    if (filenameTemplate && templateVars !== undefined) {
+      result.newFilename = resolveFilenameTemplate(filenameTemplate, {
+        ...templateVars,
+        项目名称: templateVars.项目名称 ?? baseFilename,
+        版本号: newVersionString,
+      }) + fileExtension;
+    } else {
+      result.newFilename = `${baseFilename}_${bitrate}${gradingMarker}_${newVersionString}${fileExtension}`;
+    }
     
     console.log(`基础文件名（最终）: ${baseFilename}`);
     console.log(`新文件名: ${result.newFilename}`);

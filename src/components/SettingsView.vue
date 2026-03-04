@@ -2,8 +2,9 @@
 import { ref, computed, onMounted } from 'vue';
 import { useI18n } from '../locales';
 import { uxp } from '../globals';
-import { exportFolderName, versionMode, versionPrefix, archiveEnabled, archiveBasePath, archiveFolderTemplate, backupSequenceBeforeExport, backupProjectBeforeExport, showFilenameLabels, saveSettings } from '../stores/settings';
+import { exportFolderName, versionMode, versionPrefix, archiveEnabled, archiveBasePath, archiveFolderTemplate, backupSequenceBeforeExport, backupProjectBeforeExport, showFilenameLabels, filenameTemplate, saveSettings } from '../stores/settings';
 import { previewArchivePath } from '../modules/archiveManager';
+import { previewFilenameTemplate } from '../modules/fileVersioner';
 
 // @ts-ignore - UXP 类型定义限制
 const fs = uxp.storage.localFileSystem;
@@ -22,6 +23,7 @@ const draftArchiveTemplate = ref(archiveFolderTemplate.value);
 const draftBackupSequence = ref(backupSequenceBeforeExport.value);
 const draftBackupProject = ref(backupProjectBeforeExport.value);
 const draftShowFilenameLabels = ref(showFilenameLabels.value);
+const draftFilenameTemplate = ref(filenameTemplate.value);
 const saveStatus = ref<'idle' | 'success' | 'error'>('idle');
 const saveErrorMsg = ref('');
 let statusTimer: ReturnType<typeof setTimeout> | null = null;
@@ -29,6 +31,7 @@ let statusTimer: ReturnType<typeof setTimeout> | null = null;
 const DEFAULT_FOLDER_NAME = '导出';
 const DEFAULT_PREFIX = 'V';
 const DEFAULT_ARCHIVE_TEMPLATE = 'YYYY|MM|DD_项目名称';
+const DEFAULT_FILENAME_TEMPLATE = '项目名称_编码器_码流_调色标签_定稿版标签_版本号';
 
 /** 实时预览归档路径 */
 const archivePreviewPath = computed(() => {
@@ -38,6 +41,22 @@ const archivePreviewPath = computed(() => {
     draftArchiveTemplate.value,
     '项目名称'
   );
+});
+
+/** 实时预览文件名模板（使用示例变量） */
+const filenamePreview = computed(() => {
+  if (!draftFilenameTemplate.value) return '';
+  return previewFilenameTemplate(
+    draftFilenameTemplate.value,
+    '宣传片',     // 项目名称
+    '序列 01',    // 序列名称
+    'V2',         // 版本号
+    'H.264',      // 编码器
+    '10Mbps',     // 码流
+    '16:9',       // 比例
+    '已调色',     // 调色标签
+    '定稿版'      // 定稿版标签
+  ) + '.mp4';
 });
 
 onMounted(() => {
@@ -50,6 +69,7 @@ onMounted(() => {
   draftBackupSequence.value = backupSequenceBeforeExport.value;
   draftBackupProject.value = backupProjectBeforeExport.value;
   draftShowFilenameLabels.value = showFilenameLabels.value;
+  draftFilenameTemplate.value = filenameTemplate.value;
 });
 
 /** 调用系统文件夹选择器 */
@@ -77,6 +97,9 @@ async function handleSave() {
   const trimmedTemplate = draftArchiveTemplate.value.trim();
   draftArchiveTemplate.value = trimmedTemplate || DEFAULT_ARCHIVE_TEMPLATE;
 
+  const trimmedFilenameTemplate = draftFilenameTemplate.value.trim();
+  draftFilenameTemplate.value = trimmedFilenameTemplate || DEFAULT_FILENAME_TEMPLATE;
+
   exportFolderName.value = draftFolderName.value;
   versionMode.value = draftVersionMode.value;
   versionPrefix.value = draftVersionPrefix.value;
@@ -86,6 +109,7 @@ async function handleSave() {
   backupSequenceBeforeExport.value = draftBackupSequence.value;
   backupProjectBeforeExport.value = draftBackupProject.value;
   showFilenameLabels.value = draftShowFilenameLabels.value;
+  filenameTemplate.value = draftFilenameTemplate.value;
 
   const result = await saveSettings();
 
@@ -109,6 +133,7 @@ function handleReset() {
   draftBackupSequence.value = false;
   draftBackupProject.value = false;
   draftShowFilenameLabels.value = true;
+  draftFilenameTemplate.value = DEFAULT_FILENAME_TEMPLATE;
 }
 
 function handleBack() {
@@ -184,7 +209,7 @@ function handleBack() {
 
     <sp-divider size="medium"></sp-divider>
 
-    <!-- 文件名自动标签 -->
+    <!-- 文件名自动标签 & 模板 -->
     <div class="settings-section">
       <sp-field-label class="backup-section-label">🏷️ {{ t('settings.filenameLabels') }}</sp-field-label>
       <div class="backup-option">
@@ -195,6 +220,26 @@ function handleBack() {
         </sp-checkbox>
       </div>
       <p class="settings-hint" style="margin-top: 6px;">{{ t('settings.filenameLabelsHint') }}</p>
+
+      <!-- 模板输入（仅在启用标签时显示） -->
+      <template v-if="draftShowFilenameLabels">
+        <sp-field-label style="margin-top: 12px; display: block;">
+          {{ t('settings.filenameTemplate') }}
+        </sp-field-label>
+        <sp-textfield
+          :value="draftFilenameTemplate"
+          @input="draftFilenameTemplate = $event.target.value"
+          :placeholder="t('settings.filenameTemplatePlaceholder')"
+          style="width: 100%; margin-bottom: 4px;">
+        </sp-textfield>
+        <p class="settings-hint">{{ t('settings.filenameTemplateHint') }}</p>
+
+        <!-- 文件名预览 -->
+        <div v-if="filenamePreview" class="archive-preview" style="margin-top: 6px;">
+          <span class="archive-preview-label">{{ t('settings.filenameTemplatePreview') }}：</span>
+          <span class="archive-preview-path" style="color: #a0d8a0;">{{ filenamePreview }}</span>
+        </div>
+      </template>
     </div>
 
     <sp-divider size="medium"></sp-divider>
