@@ -1,4 +1,7 @@
 # Quick Export - Premiere Pro Smart Export UXP Plugin
+
+> [English](README.md) | [简体中文](README.zh-CN.md)
+
 [![Latest Release](https://img.shields.io/github/v/release/vark-debug/jianming-adobePremierePro-Smart-Export?label=Latest%20Release)](https://github.com/vark-debug/jianming-adobePremierePro-Smart-Export/releases)
 [![License](https://img.shields.io/github/license/vark-debug/jianming-adobePremierePro-Smart-Export?color=blue)](LICENSE)
 [![Premiere Pro](https://img.shields.io/badge/Premiere%20Pro-25.6.3+-purple.svg)](https://www.adobe.com/products/premiere.html)
