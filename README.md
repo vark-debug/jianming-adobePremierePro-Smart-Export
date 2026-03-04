@@ -7,15 +7,20 @@
 [![Premiere Pro](https://img.shields.io/badge/Premiere%20Pro-25.6.3+-purple.svg)](https://www.adobe.com/products/premiere.html)
 [![Language](https://img.shields.io/badge/Language-English%20%7C%20Simplified%20Chinese-green.svg)](#-multi-language-support)
 
+**Current Version: 1.4.0 (2026-03-04)**
+
 Stop wasting time on repetitive export tweaks, messy file versions, and manual delivery workflows.
 This UXP plugin automates your entire video export pipeline for Adobe Premiere Pro, with one-click smart presets, auto version control, and built-in archiving & backup — so you can focus on editing, not admin.
 
 ## 🎯 Core Highlights At A Glance
 - **One-click smart export**: Auto-detect sequence resolution and match the optimal export preset
 - **End version chaos**: Automatic file version iteration, no more `final_final_FINAL.mp4`
+- **Template-based naming**: Build output filenames with customizable variables and auto-skip empty segments
 - **Smart delivery management**: Auto-archive final versions, with customizable folder structure
 - **Zero-risk editing**: Auto-backup sequences and project files before every export
 - **Native multi-language**: Auto-switch UI and file naming between English and Simplified Chinese
+
+For bilingual contribution rules, see [Translation Guide / 翻译指南](TRANSLATION_GUIDE.md).
 
 ## 📸 Preview
 
@@ -57,6 +62,7 @@ Eliminate repetitive preset tweaks — the plugin automatically matches the best
   - H.264 (MP4): Universal delivery format with best cross-platform compatibility
   - ProRes 422 (MOV): Industry-standard high-quality digital intermediate, for archiving and post-production handoff
   - ProRes 444 (MOV): Supports Alpha transparency channel, ideal for VFX compositing and motion graphics
+  - HEVC presets are bundled in `public/epr/` but currently unavailable due to Premiere Pro UXP API limitations
 
 ### 📁 Automatic File Management & Version Control
 Say goodbye to chaotic file naming and lost version history. The plugin automatically tracks and increments version numbers, keeping your projects organized.
@@ -65,6 +71,9 @@ Say goodbye to chaotic file naming and lost version history. The plugin automati
   - Supports Chinese format: `第一版`, `第二版`... (up to 20 versions)
 - **Intelligent File Naming**: Auto-generates standardized filenames with format, bitrate, status marks, and version
   - Example: `Promo_H.264_10Mbps_Graded_Final_V3.mp4`
+- **Filename Template Variables**:
+  - Supported variables: `YYYY`, `MM`, `DD`, `项目名称`, `序列名称`, `码流`, `编码器`, `比例`, `调色标签`, `定稿版标签`, `版本号`
+  - Empty segments are removed automatically when a variable is not applicable
 - **Customizable Options**:
   - Temporary project name modification before export, while maintaining version continuity
   - Global version format settings, with custom numeric prefix support
@@ -101,14 +110,16 @@ All configurations are saved locally via UXP DataFolder, and persist across proj
 
 | Setting | Description | Default Value |
 |---------|-------------|---------------|
-| Export Folder Name | Name of the auto-created export directory at the project parent level | `Export` |
+| Export Folder Name | Name of the auto-created export directory at the project parent level | `导出` |
 | Version Format | Numeric (e.g. `V1`) or Chinese (e.g. `第一版`) version naming | Numeric |
 | Numeric Version Prefix | Custom string prepended before the version number | `V` |
+| Filename Template | Export filename structure template | `项目名称_编码器_码流_调色标签_定稿版标签_版本号` |
 | Archive Root Folder | Global top-level folder for final version archiving | Empty (archiving off) |
 | Auto-Archive Toggle | Enable/disable automatic archiving when exporting final version | Off |
 | Archive Folder Structure | Subfolder hierarchy template, supports `YYYY`/`MM`/`DD`/`项目名称` variables, `|` as level separator | `YYYY|MM|DD_项目名称` |
 | Backup Sequence on Export | Auto-clone active sequence before export | Off |
 | Backup Project File on Export | Auto-save a copy of the .prproj file before export | Off |
+| Show Filename Labels | Show/hide filename field labels in main UI | On |
 
 ---
 
@@ -123,7 +134,7 @@ The plugin automatically detects your Premiere Pro UI language, and switches bot
   - Chinese UI Export: `宣传片_H.264_10Mbps_已调色_定稿版_V3.mp4`
   - English UI Export: `Promo_H.264_10Mbps_Graded_Final_V3.mp4`
 
-We welcome translation contributions! See the [Contributing Guide](#-contributing) for details.
+We welcome translation contributions! See [Translation Guide / 翻译指南](TRANSLATION_GUIDE.md) and the [Contributing Guide](#-contributing) for details.
 
 ---
 
@@ -151,14 +162,13 @@ yarn zip
 # Output to public-zip/ directory
 ```
 
-**Debugging
+### Debugging
 1. Run yarn dev to start the development server
 2. Open Adobe UXP Developer Tool
 3. Load the plugin via dist/manifest.json
 4. Connect to Premiere Pro, click "Debug" to open Chrome DevTools
 
-
-Project Structure**
+### Project Structure
 ```
 src/
 ├── modules/               # Core business modules
@@ -181,15 +191,18 @@ src/
 
 public/
 └── epr/                   # Native Premiere Pro export preset files
-    ├── h264_10Mbps.epr
-    ├── h264_48Mbps.epr
+    ├── h264匹配帧10mbps.epr
+    ├── h264匹配帧48mbps.epr
+    ├── HEVC匹配帧 10Mbps.epr
+    ├── HEVC匹配帧35Mbps.epr
     ├── ProRes 422.epr
     └── ProRes 444.epr
 ```
-📄 License
+
+## 📄 License
 
 This project is licensed under the MIT License - see the LICENSE file for full details.
 
-🙏 Acknowledgments
+## 🙏 Acknowledgments
 
 This project is built on the Bolt UXP framework, the modern toolkit for Adobe UXP plugin development.
